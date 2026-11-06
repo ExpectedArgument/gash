@@ -1,0 +1,17 @@
+rc=0 size=3 | /usr/bin/echo hi >> "$d/f"
+rc=0 size=3 | echo hi | /usr/bin/sed s/h/H/ >> "$d/f"
+rc=0 size=4 | /usr/bin/sed s/a/b/ <<< abc >> "$d/f"
+rc=0 size=2 | /usr/bin/grep -c . <<< x >> "$d/f"
+rc=0 size=2 | /usr/bin/awk 'BEGIN{print 1}' >> "$d/f"
+rc=0 size=2 | /usr/bin/sort <<< z >> "$d/f"
+rc=0 size=2 | /usr/bin/cat <<< z >> "$d/f"
+rc=0 size=2 | { /usr/bin/echo x; } >> "$d/f"
+rc=0 size=2 | ( /usr/bin/echo x ) >> "$d/f"
+rc=2 size=69 | /usr/bin/ls /nonexistent 2>> "$d/f"
+start
+a
+b
+c
+d
+e
+f

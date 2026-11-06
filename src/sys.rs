@@ -73,6 +73,52 @@ extern "system" {
     pub fn GetConsoleWindow() -> HANDLE;
     pub fn SetConsoleTitleW(title: *const u16) -> BOOL;
     pub fn GetLastError() -> DWORD;
+    pub fn ReOpenFile(h: HANDLE, access: DWORD, share: DWORD, flags: DWORD) -> HANDLE;
+}
+
+#[repr(C)]
+struct IO_STATUS_BLOCK {
+    status: usize,
+    information: usize,
+}
+
+#[link(name = "ntdll")]
+extern "system" {
+    fn NtQueryInformationFile(h: HANDLE, iosb: *mut IO_STATUS_BLOCK, info: *mut core::ffi::c_void, len: u32, class: u32) -> i32;
+}
+
+const FILE_WRITE_DATA: DWORD = 0x0002;
+const FILE_APPEND_DATA: DWORD = 0x0004;
+const FILE_ACCESS_INFORMATION: u32 = 8;
+const FILE_SHARE_ALL: DWORD = 0x7; // read | write | delete
+
+/// The access rights a handle was opened with.
+fn granted_access(h: HANDLE) -> Option<DWORD> {
+    let mut iosb = IO_STATUS_BLOCK { status: 0, information: 0 };
+    let mut flags: DWORD = 0;
+    let st = unsafe {
+        NtQueryInformationFile(h, &mut iosb, &mut flags as *mut DWORD as *mut _, 4, FILE_ACCESS_INFORMATION)
+    };
+    (st >= 0).then_some(flags)
+}
+
+/// For a disk file opened append-only (FILE_APPEND_DATA without FILE_WRITE_DATA, which is how
+/// `>>` opens files), open a second handle to it that also has FILE_WRITE_DATA. The caller
+/// owns the returned handle. Returns None for any other handle.
+///
+/// The MSYS runtime takes an inherited stdio handle as writable only when it has
+/// FILE_WRITE_DATA, so an MSYS program fails every write to an append-only handle with EBADF.
+pub fn reopen_append_only_writable(h: HANDLE) -> Option<HANDLE> {
+    if h.is_null() || h as isize == -1 || unsafe { GetFileType(h) } != FILE_TYPE_DISK {
+        return None;
+    }
+    let acc = granted_access(h)?;
+    if acc & FILE_APPEND_DATA == 0 || acc & FILE_WRITE_DATA != 0 {
+        return None;
+    }
+    let want = acc | FILE_WRITE_DATA;
+    let nh = unsafe { ReOpenFile(h, want, FILE_SHARE_ALL, 0) };
+    (!nh.is_null() && nh as isize != -1).then_some(nh)
 }
 
 #[link(name = "advapi32")]

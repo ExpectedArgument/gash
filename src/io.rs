@@ -5,7 +5,7 @@ use crate::sys;
 use std::fs::File;
 use std::io::{self, BufRead, PipeReader, PipeWriter, Read, Seek, SeekFrom, Write};
 use std::mem::ManuallyDrop;
-use std::os::windows::io::{AsHandle, FromRawHandle};
+use std::os::windows::io::{AsHandle, AsRawHandle, FromRawHandle};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -218,9 +218,14 @@ impl Handle {
         }
     }
 
-    /// Convert to a Stdio for a child process. Returns an optional helper thread
-    /// (pump) that must be joined after the child exits.
-    pub fn to_stdio(&self, fd: i32) -> io::Result<(Stdio, Option<JoinHandle<()>>)> {
+    /// Convert to a Stdio for a child process (`msys`: an MSYS2/Cygwin program). Returns an
+    /// optional helper thread (pump) that must be joined after the child exits.
+    pub fn to_stdio(&self, fd: i32, msys: bool) -> io::Result<(Stdio, Option<JoinHandle<()>>)> {
+        if msys {
+            if let Some(f) = self.msys_writable() {
+                return Ok((Stdio::from(f), None));
+            }
+        }
         Ok(match self {
             Handle::Stdin => {
                 if fd == 0 {
@@ -275,6 +280,27 @@ impl Handle {
                 (Stdio::from(r), Some(h))
             }
         })
+    }
+}
+
+impl Handle {
+    /// MSYS programs can't write through an append-only handle, which is how `>>` opens files
+    /// (see `sys::reopen_append_only_writable`). For such a file, a second handle that can
+    /// write, positioned at the end of the file. The MSYS program then writes from there on,
+    /// not always at the current end as with O_APPEND, so another process appending to the
+    /// same file at the same time can overwrite its output or have its output overwritten.
+    fn msys_writable(&self) -> Option<File> {
+        let h = match self {
+            Handle::Stdin => sys::std_handle(sys::STD_INPUT_HANDLE),
+            Handle::Stdout => sys::std_handle(sys::STD_OUTPUT_HANDLE),
+            Handle::Stderr => sys::std_handle(sys::STD_ERROR_HANDLE),
+            Handle::File(f) => f.as_raw_handle() as sys::HANDLE,
+            _ => return None,
+        };
+        let nh = sys::reopen_append_only_writable(h)?;
+        let mut f = unsafe { File::from_raw_handle(nh as _) };
+        f.seek(SeekFrom::End(0)).ok()?;
+        Some(f)
     }
 }
 

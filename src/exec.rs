@@ -1541,10 +1541,12 @@ impl Shell {
         for (k, v) in self.child_env(assigns, native) {
             cmd.env(k, v);
         }
+        let msys = matches!(res.kind, ExeKind::Msys)
+            || matches!(&res.interp, Some((_, ExeKind::Msys, _)) if res.kind == ExeKind::Interp);
         let mut pumps = Vec::new();
         for fd in 0..3 {
             let st = match self.fds.get(fd) {
-                Some(h) => match h.to_stdio(fd) {
+                Some(h) => match h.to_stdio(fd, msys) {
                     Ok((s, p)) => {
                         if let Some(p) = p {
                             pumps.push(p);
