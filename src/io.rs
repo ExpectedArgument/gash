@@ -5,7 +5,7 @@ use crate::sys;
 use std::fs::File;
 use std::io::{self, BufRead, PipeReader, PipeWriter, Read, Seek, SeekFrom, Write};
 use std::mem::ManuallyDrop;
-use std::os::windows::io::{AsHandle, FromRawHandle};
+use std::os::windows::io::{AsHandle, AsRawHandle, FromRawHandle};
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
@@ -237,9 +237,18 @@ impl Handle {
             Handle::Stderr => write_std(true, data),
             Handle::File(f) => (&**f).write_all(data),
             Handle::Append(f) => {
-                let mut f = &**f;
-                f.seek(SeekFrom::End(0))?;
-                f.write_all(data)
+                // Each write is one append at the current end (sys::write_at_end), which also
+                // leaves the shared position there. Seeking to the end and then writing could
+                // land at a stale end when another writer appended in between, and overwrite it.
+                let mut rest = data;
+                while !rest.is_empty() {
+                    let n = sys::write_at_end(f.as_raw_handle() as sys::HANDLE, rest)?;
+                    if n == 0 {
+                        return Err(io::ErrorKind::WriteZero.into());
+                    }
+                    rest = &rest[n..];
+                }
+                Ok(())
             }
             Handle::PipeW(p) => (&**p).write_all(data),
             Handle::Buf(b) => {
@@ -409,7 +418,17 @@ impl Handle {
             }
             Handle::File(f) => (Stdio::from(f.try_clone()?), None),
             Handle::Append(f) => {
-                let _ = (&**f).seek(SeekFrom::End(0));
+                // Writes through this handle leave its position at the end (see `write_all`), so it
+                // needs moving only when another handle to the file has appended since. Seeking
+                // every time could move it back over output that a program still writing through
+                // it adds meanwhile. The length is read first: writers on this handle only move
+                // the position forward, so they can't make it look behind.
+                let mut g = &**f;
+                if let (Ok(len), Ok(pos)) = (f.metadata().map(|m| m.len()), g.stream_position()) {
+                    if pos < len {
+                        let _ = g.seek(SeekFrom::End(0));
+                    }
+                }
                 (Stdio::from(f.try_clone()?), None)
             }
             Handle::PipeR(p) => (Stdio::from(p.try_clone()?), None),
@@ -516,4 +535,56 @@ impl Fds {
         }
         fd
     }
+}
+
+/// A file open for `>>`, shared by every redirection to it in this process (see
+/// `shared_append`).
+struct AppendFile {
+    file: Arc<File>,
+    /// Programs it was handed to, by process id. It stays shared while they run, even after
+    /// the redirection that started them is gone (`cmd >> log &`).
+    children: Vec<u32>,
+}
+
+static APPEND_FILES: Mutex<Vec<AppendFile>> = Mutex::new(Vec::new());
+
+/// The handle for a file just opened with `>>`. If another `>>` redirection in this process,
+/// or a program started with one, still has the same file open, this shares that handle, and
+/// so its file object and position, instead of adding a second one. Programs appending to the
+/// file through separate redirections at the same time (`cmd >> log &` in a loop) then write
+/// one after another, as with Cygwin's O_APPEND, rather than at the same offset and over each
+/// other.
+pub fn shared_append(f: File) -> Arc<File> {
+    let mut open = APPEND_FILES.lock().unwrap();
+    prune_append(&mut open);
+    let h = f.as_raw_handle() as sys::HANDLE;
+    if let Some(a) = open.iter().find(|a| sys::same_file(a.file.as_raw_handle() as sys::HANDLE, h)) {
+        return a.file.clone();
+    }
+    let file = Arc::new(f);
+    open.push(AppendFile { file: file.clone(), children: Vec::new() });
+    file
+}
+
+/// Record that the program `pid` was started with these `>>` handles.
+pub fn append_started(files: &[Arc<File>], pid: u32) {
+    let mut open = APPEND_FILES.lock().unwrap();
+    for a in open.iter_mut().filter(|a| files.iter().any(|f| Arc::ptr_eq(f, &a.file))) {
+        a.children.push(pid);
+    }
+}
+
+/// Forget the `>>` files that no redirection holds and no program started with them still
+/// writes to, closing them. Called when redirections are undone.
+pub fn prune_append_files() {
+    if let Ok(mut open) = APPEND_FILES.try_lock() {
+        prune_append(&mut open);
+    }
+}
+
+fn prune_append(open: &mut Vec<AppendFile>) {
+    open.retain_mut(|a| {
+        a.children.retain(|&pid| sys::pid_alive(pid));
+        Arc::strong_count(&a.file) > 1 || !a.children.is_empty()
+    });
 }

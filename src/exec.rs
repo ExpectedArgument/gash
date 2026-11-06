@@ -1607,7 +1607,12 @@ impl Shell {
         let mut pumps = Vec::new();
         // Here-doc input lent to the child as a file (see `MemReader::lend_file`).
         let mut lent = Vec::new();
+        // `>>` handles given to the program; they stay shared while it runs (io::shared_append).
+        let mut appends = Vec::new();
         for fd in 0..3 {
+            if let Some(Handle::Append(a)) = self.fds.get(fd) {
+                appends.push(a.clone());
+            }
             if msys_child && names_std_fd(&argv[1..], fd) {
                 if let Some(Handle::Mem(m)) = self.fds.get(fd) {
                     if let Ok(Some(f)) = m.lock().unwrap().lend_file() {
@@ -1671,6 +1676,9 @@ impl Shell {
                 return Ok(code);
             }
         };
+        if !appends.is_empty() {
+            crate::io::append_started(&appends, child.id());
+        }
         if self.spawn_only {
             self.spawned = Some(child);
             return Ok(0);
@@ -1739,6 +1747,7 @@ impl Shell {
         for (fd, old) in saved.0.into_iter().rev() {
             self.fds.set(fd, old);
         }
+        crate::io::prune_append_files();
     }
 
     fn set_fd_saved(&mut self, fd: i32, h: Option<Handle>, saved: &mut Saved, persist: bool) {
@@ -1793,7 +1802,7 @@ impl Shell {
         let f = oo.open(&wp)?;
         if append && write && crate::sys::is_disk(std::os::windows::io::AsRawHandle::as_raw_handle(&f) as _) {
             (&f).seek(std::io::SeekFrom::End(0))?;
-            return Ok(Handle::Append(Arc::new(f)));
+            return Ok(Handle::Append(crate::io::shared_append(f)));
         }
         Ok(Handle::File(Arc::new(f)))
     }
