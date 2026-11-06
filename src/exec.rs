@@ -1448,6 +1448,7 @@ impl Shell {
         }
         let mut cmd;
         let native;
+        let mut msys_child = false;
         let no_conv = self.get_str("MSYS_NO_PATHCONV").map(|v| !v.is_empty()).unwrap_or(false);
         let excl: Vec<String> = self
             .get_str("MSYS2_ARG_CONV_EXCL")
@@ -1507,6 +1508,7 @@ impl Shell {
                     cmd.raw_arg(msys_quote(a));
                 }
                 native = false;
+                msys_child = true;
             }
             ExeKind::Script => {
                 cmd = Proc::new(&crate::global().exe);
@@ -1534,6 +1536,7 @@ impl Shell {
                     }
                 }
                 native = !msys;
+                msys_child = msys;
             }
         }
         cmd.current_dir(&self.cwd);
@@ -1542,7 +1545,24 @@ impl Shell {
             cmd.env(k, v);
         }
         let mut pumps = Vec::new();
+        // Here-doc input lent to the child as a file (see `MemReader::lend_file`).
+        let mut lent = Vec::new();
         for fd in 0..3 {
+            if msys_child && names_std_fd(&argv[1..], fd) {
+                if let Some(Handle::Mem(m)) = self.fds.get(fd) {
+                    if let Ok(Some(f)) = m.lock().unwrap().lend_file() {
+                        if let Ok(c) = f.try_clone() {
+                            lent.push((m.clone(), f));
+                            match fd {
+                                0 => cmd.stdin(c),
+                                1 => cmd.stdout(c),
+                                _ => cmd.stderr(c),
+                            };
+                            continue;
+                        }
+                    }
+                }
+            }
             let st = match self.fds.get(fd) {
                 Some(h) => match h.to_stdio(fd) {
                     Ok((s, p)) => {
@@ -1605,6 +1625,9 @@ impl Shell {
         }
         for p in pumps {
             let _ = p.join();
+        }
+        for (m, f) in lent {
+            m.lock().unwrap().return_file(&f);
         }
         let raw = st.as_ref().ok().and_then(|s| s.code()).map(|c| c as u32);
         let died_of_sigint = raw == Some(0xC000_013A) || (!native && raw == Some(2 << 8));
@@ -1896,6 +1919,19 @@ impl Shell {
         }
         Ok(())
     }
+}
+
+/// Does an argument name file descriptor `fd` as a file (`/dev/stdin`, `/dev/fd/0`,
+/// `/proc/self/fd/0`, also inside a longer argument such as `--file=/dev/stdin` or an
+/// `sh -c` script)?
+fn names_std_fd(args: &[String], fd: i32) -> bool {
+    let std_name = ["/dev/stdin", "/dev/stdout", "/dev/stderr"][fd as usize];
+    let numbered = [format!("/dev/fd/{}", fd), format!("/proc/self/fd/{}", fd)];
+    let ends_name = |rest: &str| !rest.starts_with(|c: char| c.is_ascii_alphanumeric() || c == '_');
+    args.iter().any(|a| {
+        a.match_indices(std_name).any(|(i, m)| ends_name(&a[i + m.len()..]))
+            || numbered.iter().any(|n| a.match_indices(n.as_str()).any(|(i, m)| ends_name(&a[i + m.len()..])))
+    })
 }
 
 /// If `r` is one of Git's MSYS tools and Microsoft Coreutils provides the same utility,

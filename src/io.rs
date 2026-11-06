@@ -44,15 +44,79 @@ impl MemReader {
             w.write_all(rest)?;
             Handle::PipeR(Arc::new(r))
         } else {
+            // All of it, positioned after what builtins already read: a program that
+            // reopens the file by name (/dev/stdin) reads from the start, as with bash.
             let mut f = temp_file()?;
-            f.write_all(rest)?;
-            f.seek(SeekFrom::Start(0))?;
+            f.write_all(&self.data)?;
+            f.seek(SeekFrom::Start(self.pos as u64))?;
             Handle::File(Arc::new(f))
         };
         self.data = Vec::new();
         self.pos = 0;
         self.shared = Some(h.clone());
         Ok(h)
+    }
+
+    /// The unread input as a file, for an MSYS child whose arguments name it
+    /// (`/dev/stdin`, `/dev/fd/0`, `/proc/self/fd/0`). MSYS can reopen those only when
+    /// they are a file (or a pipe it made itself; ours shows up as `pipe:[0]` and fails
+    /// with "No such file or directory").
+    ///
+    /// Returns `None` when the input is already in a file, which the child then shares
+    /// as usual. Otherwise the input moves to a new file for the duration of the child,
+    /// and [`MemReader::return_file`] must be called once the child has exited.
+    pub fn lend_file(&mut self) -> io::Result<Option<Arc<File>>> {
+        let rest = match &self.shared {
+            Some(Handle::File(_)) => return Ok(None),
+            Some(h) => {
+                // The pipe's write end is closed, so this stops at the end of the input.
+                let mut v = Vec::new();
+                let mut buf = [0u8; 8192];
+                while let Ok(n @ 1..) = h.read(&mut buf) {
+                    v.extend_from_slice(&buf[..n]);
+                }
+                v
+            }
+            None if self.data.len() > HEREDOC_PIPE_MAX => {
+                self.shared()?;
+                return Ok(None);
+            }
+            None => self.data.split_off(self.pos),
+        };
+        let mut f = temp_file()?;
+        f.write_all(&rest)?;
+        f.seek(SeekFrom::Start(0))?;
+        let f = Arc::new(f);
+        self.data = Vec::new();
+        self.pos = 0;
+        self.shared = Some(Handle::File(f.clone()));
+        Ok(Some(f))
+    }
+
+    /// After a child that got [`MemReader::lend_file`]'s file has exited: put what is left
+    /// back in a pipe, as bash would have had it all along.
+    ///
+    /// With bash the child would have reopened that pipe, and whatever it read through
+    /// /dev/stdin would be gone. Reads through a reopened file don't move our position,
+    /// so they can't be measured: if the child didn't read through its stdin handle at
+    /// all, it is taken to have read everything by name. (Most programs read a file
+    /// they are given to the end.)
+    pub fn return_file(&mut self, f: &Arc<File>) {
+        if !matches!(&self.shared, Some(Handle::File(s)) if Arc::ptr_eq(s, f)) {
+            return;
+        }
+        let mut rest = Vec::new();
+        if (&**f).stream_position().map(|p| p > 0).unwrap_or(false) {
+            let _ = (&**f).read_to_end(&mut rest);
+        }
+        if rest.len() > HEREDOC_PIPE_MAX {
+            return;
+        }
+        self.shared = None;
+        self.data = rest;
+        self.pos = 0;
+        // On failure it stays in memory, and the next child gets it through a pump thread.
+        let _ = self.shared();
     }
 }
 
