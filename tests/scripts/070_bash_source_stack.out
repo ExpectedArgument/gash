@@ -1,0 +1,8 @@
+main top: FUNCNAME=() SOURCE=(./main.sh) LINENO=(0)
+lib top: FUNCNAME=() SOURCE=(./lib.sh ./main.sh) LINENO=(3 0)
+libf: FUNCNAME=(libf mainf main) SOURCE=(./lib.sh ./main.sh ./main.sh) LINENO=(4 5 0)
+libf caller 0: 4 mainf ./main.sh
+libf caller 1: 5 main ./main.sh
+lib2 top: FUNCNAME=(source inner_source main) SOURCE=(./lib2.sh ./lib.sh ./main.sh) LINENO=(7 6 0)
+after: FUNCNAME=() SOURCE=(./main.sh)
+run, not sourced

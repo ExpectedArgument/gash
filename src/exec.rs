@@ -657,7 +657,9 @@ impl Shell {
                     self.eprint(&format!("`{}': is a special builtin", f.name));
                     return Ok(1);
                 }
-                self.define_function(f.clone());
+                // Remember the file it is defined in, for BASH_SOURCE and error messages.
+                let def = FuncDef { name: f.name.clone(), body: f.body.clone(), source: f.source.clone(), file: self.source_name.clone(), line: f.line };
+                self.define_function(Arc::new(def));
                 Ok(0)
             }
         }
@@ -1288,6 +1290,8 @@ impl Shell {
         let saved_pos = std::mem::replace(&mut self.positional, args.to_vec());
         self.vars.push_frame();
         self.call_stack.push(Frame { func: f.name.clone(), source: self.source_name.clone(), call_line: self.lineno });
+        // While it runs, the code is from the function's own file (BASH_SOURCE[0], error messages).
+        let saved_source = if f.file.is_empty() { None } else { Some(std::mem::replace(&mut self.source_name, f.file.clone())) };
         self.func_depth += 1;
         let saved_loop = self.loop_depth;
         self.loop_depth = 0;
@@ -1308,6 +1312,9 @@ impl Shell {
         }
         self.loop_depth = saved_loop;
         self.func_depth -= 1;
+        if let Some(s) = saved_source {
+            self.source_name = s;
+        }
         self.call_stack.pop();
         self.vars.pop_frame();
         self.positional = saved_pos;
