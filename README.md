@@ -68,10 +68,12 @@ by real Git Bash) passes 100%. Supported:
 
 - Paths: `/c/foo` ↔ `C:\foo`, `/tmp` → `%TEMP%`, `/usr/bin`, `/bin`, `/ucrt64` → Git's
   install dir, `/dev/null`, `/dev/stdin|stdout|stderr|fd/N`, `/dev/tty`. Windows paths
-  (`C:\x`, `C:/x`) work everywhere too. `$PWD` and `pwd` show the MSYS form.
+  (`C:\x`, `C:/x`) work everywhere too. `$PWD` and `pwd` show the MSYS form, `pwd -W` the
+  Windows one (`C:/...`).
 - PATH is kept in MSYS form inside the shell and converted when launching programs.
 - Arguments to native programs get MSYS2-style path conversion (`/c/x` → `C:/x`),
-  honoring `MSYS_NO_PATHCONV` and `MSYS2_ARG_CONV_EXCL`.
+  honoring `MSYS_NO_PATHCONV` and `MSYS2_ARG_CONV_EXCL` when they are exported or given as
+  a command prefix (`MSYS_NO_PATHCONV=1 cmd ...`), as in Git Bash.
 - Arguments to MSYS programs are quoted so the MSYS runtime doesn't glob/brace/tilde-expand
   or `@file`-expand them.
 - Executables are found with or without `.exe`/`.com`/`.bat`/`.cmd`; extensionless files with a

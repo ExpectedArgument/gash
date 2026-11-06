@@ -393,25 +393,46 @@ fn cd(sh: &mut Shell, args: &[String]) -> R {
 }
 
 pub fn physical_pwd(sh: &Shell) -> String {
+    path::to_posix(&physical_cwd(sh))
+}
+
+/// The current directory with symlinks resolved, as a Windows path.
+fn physical_cwd(sh: &Shell) -> std::path::PathBuf {
     match std::fs::canonicalize(&sh.cwd) {
         Ok(c) => {
             let s = c.to_string_lossy().into_owned();
-            let s = s.strip_prefix(r"\\?\").unwrap_or(&s).to_string();
-            path::to_posix(std::path::Path::new(&s))
+            std::path::PathBuf::from(s.strip_prefix(r"\\?\").unwrap_or(&s))
         }
-        Err(_) => path::to_posix(&sh.cwd),
+        Err(_) => sh.cwd.clone(),
     }
 }
 
 fn pwd(sh: &mut Shell, args: &[String]) -> R {
-    let physical = args.iter().any(|a| a == "-P") || (sh.o[O_PHYSICAL] && !args.iter().any(|a| a == "-L"));
-    let p = if physical {
-        physical_pwd(sh)
-    } else {
-        match sh.get_str("PWD") {
+    // -L, -P and MSYS bash's -W (the physical directory in Windows form, `C:/...`) each choose a
+    // form; as in Git Bash, the last one given wins.
+    let mut form = if sh.o[O_PHYSICAL] { 'P' } else { 'L' };
+    for a in args {
+        if a == "--" || a == "-" || !a.starts_with('-') {
+            break;
+        }
+        for c in a[1..].chars() {
+            match c {
+                'L' | 'P' | 'W' => form = c,
+                _ => {
+                    sh.eprint(&format!("pwd: -{}: invalid option", c));
+                    sh.eprint("pwd: usage: pwd [-LPW]");
+                    return Ok(2);
+                }
+            }
+        }
+    }
+    let p = match form {
+        'P' => physical_pwd(sh),
+        'W' => path::win_fwd(&physical_cwd(sh)),
+        _ => match sh.get_str("PWD") {
             Some(p) if !p.is_empty() && path::to_win(&p, &sh.cwd).is_dir() => p,
             _ => path::to_posix(&sh.cwd),
-        }
+        },
     };
     sh.out(1, format!("{}\n", p).as_bytes())?;
     Ok(0)
