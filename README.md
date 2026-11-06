@@ -194,6 +194,21 @@ GASH_COMPAT_JOBS=8 cargo test --test compat       # parallel
 
 `tests/regen_expected.ps1` regenerates the expected outputs from Git Bash.
 
+## Contributing
+
+**Every commit must be attributed to the model that produced it, if any.** End the commit
+message with a trailer for each model used, naming the model and its version:
+
+```
+Assisted-By: GPT-5.1
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+```
+
+`Assisted-By: <model and version>` works for any model. `Co-Authored-By: <model and version> <noreply@vendor>`
+is the form some tools, such as Claude Code, write themselves. If no model was involved, end the
+message with `Assisted-By: none`. A PR check fails on any commit without one of these and comments
+on the PR with what to fix; reword the commits with `git rebase -i` and force-push.
+
 ## Layout
 
 | File | Purpose |
@@ -213,6 +228,7 @@ GASH_COMPAT_JOBS=8 cargo test --test compat       # parallel
 | `assets/make_icon.py`, `build.rs` | Rasterize the icon into `assets/gash.ico`; embed it in `gash.exe` (writes the `.res` directly, no resource compiler) |
 | `assets/make_speed_svg.py` | Builds the speed animation at the top of this README from the measured timings |
 | `.github/workflows/release.yml` | Builds x64/arm64 zips on a `v*` tag, publishes the GitHub release, submits to winget |
+| `.github/workflows/attribution*.yml`, `.github/scripts/check-attribution.sh` | Checks that every PR commit names the models that produced it, and comments on the PR when one doesn't |
 | `packaging/winget/` | winget manifests for the first submission, and how releases reach winget |
 | `assets/video/` | Renders that animation frame by frame into an MP4 (`python assets/video/server.py`, then open `http://localhost:8765/video/render.html` and run `renderVideo('dark')`) |
 
