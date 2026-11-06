@@ -1,0 +1,15 @@
+./s1: rc=1
+./s2: rc=1
+./s3: rc=1
+./s4: rc=1
+./s5: rc=1
+errexit-off
+./s6: rc=0
+turned-off
+./s7: rc=0
+./s8: rc=2
+args: one two
+./s9: rc=1
++ echo traced
+traced
+./sx: rc=0

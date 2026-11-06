@@ -70,7 +70,8 @@ fn usage(name: &str) {
     );
 }
 
-fn parse_cli(argv: &[String], name: &str) -> Result<Cli, i32> {
+/// `report`: print errors, `--help` and `--version` (off when checking a script's `#!` line).
+fn parse_cli(argv: &[String], name: &str, report: bool) -> Result<Cli, i32> {
     let mut c = Cli {
         command: None,
         script: None,
@@ -108,17 +109,23 @@ fn parse_cli(argv: &[String], name: &str) -> Result<Cli, i32> {
                 "verbose" => c.set_letters.push(('v', true)),
                 "noediting" | "restricted" | "debugger" | "dump-strings" | "dump-po-strings" | "wordexp" | "pretty-print" => {}
                 "version" => {
-                    println!("gash {} (bash-compatible shell for Windows; BASH_VERSION {})", env!("CARGO_PKG_VERSION"), BASH_VERSION);
-                    println!("A from-scratch native replacement for Git Bash. License: MIT.");
+                    if report {
+                        println!("gash {} (bash-compatible shell for Windows; BASH_VERSION {})", env!("CARGO_PKG_VERSION"), BASH_VERSION);
+                        println!("A from-scratch native replacement for Git Bash. License: MIT.");
+                    }
                     return Err(0);
                 }
                 "help" => {
-                    usage(name);
+                    if report {
+                        usage(name);
+                    }
                     return Err(0);
                 }
                 _ => {
-                    eprintln!("{}: --{}: invalid option", name, long);
-                    usage(name);
+                    if report {
+                        eprintln!("{}: --{}: invalid option", name, long);
+                        usage(name);
+                    }
                     return Err(2);
                 }
             }
@@ -154,8 +161,10 @@ fn parse_cli(argv: &[String], name: &str) -> Result<Cli, i32> {
                     if set_opt_by_letter(other).is_some() {
                         c.set_letters.push((other, on));
                     } else {
-                        eprintln!("{}: -{}: invalid option", name, other);
-                        usage(name);
+                        if report {
+                            eprintln!("{}: -{}: invalid option", name, other);
+                            usage(name);
+                        }
                         return Err(2);
                     }
                 }
@@ -169,7 +178,9 @@ fn parse_cli(argv: &[String], name: &str) -> Result<Cli, i32> {
         match it.next() {
             Some(cmd) => c.command = Some(cmd),
             None => {
-                eprintln!("{}: -c: option requires an argument", name);
+                if report {
+                    eprintln!("{}: -c: option requires an argument", name);
+                }
                 return Err(2);
             }
         }
@@ -183,6 +194,32 @@ fn parse_cli(argv: &[String], name: &str) -> Result<Cli, i32> {
         c.args = it.collect();
     }
     Ok(c)
+}
+
+/// Applies the `set` and `shopt` options of a command line (or of a script's `#!` line).
+/// Err holds the message for an unknown option name.
+fn apply_options(sh: &mut Shell, cli: &Cli) -> Result<(), String> {
+    if cli.posix {
+        sh.o[O_POSIX] = true;
+    }
+    for (c, on) in &cli.set_letters {
+        if let Some(i) = set_opt_by_letter(*c) {
+            sh.o[i] = *on;
+        }
+    }
+    for (n, on) in &cli.set_opts {
+        match set_opt_index(n) {
+            Some(i) => sh.o[i] = *on,
+            None => return Err(format!("{}: invalid option name", n)),
+        }
+    }
+    for (n, on) in &cli.shopts {
+        match shopt_index(n) {
+            Some(i) => sh.sh[i] = *on,
+            None => return Err(format!("{}: invalid shell option name", n)),
+        }
+    }
+    Ok(())
 }
 
 fn is_login_argv0(a0: &str) -> bool {
@@ -386,7 +423,7 @@ fn real_main(argv: Vec<String>) -> i32 {
     let base = argv0.rsplit(['/', '\\']).next().unwrap_or("gash").trim_start_matches('-');
     let base = base.strip_suffix(".exe").or_else(|| base.strip_suffix(".EXE")).unwrap_or(base).to_string();
     let name = if base.is_empty() { "gash".to_string() } else { base };
-    let cli = match parse_cli(&argv, &name) {
+    let cli = match parse_cli(&argv, &name, true) {
         Ok(c) => c,
         Err(code) => return code,
     };
@@ -409,31 +446,12 @@ fn real_main(argv: Vec<String>) -> i32 {
     if login {
         sh.sh[sho::login_shell()] = true;
     }
-    if name == "sh" || cli.posix {
+    if name == "sh" {
         sh.o[O_POSIX] = true;
     }
-    for (c, on) in &cli.set_letters {
-        if let Some(i) = set_opt_by_letter(*c) {
-            sh.o[i] = *on;
-        }
-    }
-    for (n, on) in &cli.set_opts {
-        match set_opt_index(n) {
-            Some(i) => sh.o[i] = *on,
-            None => {
-                eprintln!("{}: {}: invalid option name", name, n);
-                return 2;
-            }
-        }
-    }
-    for (n, on) in &cli.shopts {
-        match shopt_index(n) {
-            Some(i) => sh.sh[i] = *on,
-            None => {
-                eprintln!("{}: {}: invalid shell option name", name, n);
-                return 2;
-            }
-        }
+    if let Err(msg) = apply_options(&mut sh, &cli) {
+        eprintln!("{}: {}", name, msg);
+        return 2;
     }
     if interactive {
         sh.sh[sho::expand_aliases()] = true;
