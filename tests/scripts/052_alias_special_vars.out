@@ -1,0 +1,37 @@
+c1: hello
+c2: alias with args
+c3: chained args
+c4: target expanded
+c5: unaliased
+c6: same-line alias not yet active
+c6: ll
+c7: escaped alias skipped
+c8: quoted alias skipped
+c9: count 5
+c10: alias say='echo'
+c3: inside function defined after alias
+c11: new definition
+c12: 0
+c13: 3
+c14: 0
+c15: 1
+c16: 42
+c17: 0
+c18: last
+c19: $$ equals BASHPID in main
+c20: differ in subshell
+c21: 1
+c22: numeric
+c23: line 35
+c24: line in func 36
+c25: assignment status 0
+c26: cmdsub assignment status 3
+c27: after unalias -a: 0
+c28: one
+c28: two
+c29: via nested alias
+c30: quoted alias
+c31: alias in block
+c32: 3
+c33: [] [] 0
+c34: 0

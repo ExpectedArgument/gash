@@ -1,0 +1,55 @@
+c1: in subshell inner
+c2: after outer
+c3: in group group
+c4: after group group
+c5: 5
+c6: before exit
+c6: status 2
+c7: inside sub
+c8: still in parent
+c9: func visible in subshell
+c10: func defined in subshell gone
+c11: 2
+c12: 0
+c13: main pid same
+c14: subshell BASHPID differs
+c15: $$ same in subshell
+c16: 0 1 2
+c17: nested 2
+c18: 3
+c19: 2
+c20: 1
+C21: a
+C21: b
+c22: 2
+c23: 1
+c24: 1
+c25: 44
+c26: 1 2
+c27: [unset]
+c28: [1]
+c29: set in subshell
+c30: extglob not leaked
+c31: 1
+c32: 9
+c33: body
+c33: subshell exit trap
+c34: one-line group
+c35: multiline subshell
+c36: multiline group
+c37: bare exit status 0
+c38: bare exit inherits 1
+c39: 1
+c40: 3
+c41: 2
+c42: 2
+c43: 1
+c44: x,y
+c45: x y
+c46: group status
+c46: 4
+c47: redirected away
+c48: inner
+after 3
+c49: triple nesting
+c50: b

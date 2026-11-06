@@ -1,0 +1,36 @@
+c1: 1
+c2: status 1
+c3: 1
+c4: 1
+c5: 1
+c6: local shadow 1
+c6: status 0
+c7: 1 x
+c8: 1
+c9: 1
+c10: declare -r DR="dr"
+c10: declare -r R="1"
+c11: declare -x E1="one"
+c12: declare -- E1="one"
+c13: declare -x E2="two"
+c14: declare -x E3
+c15: declare -x E4="four"
+c16: declare -- E4="four"
+c17: declare -x FROM_FUNC="yes"
+c18: declare -x E5="five"
+c19: declare -- E5="five"
+c20: declare -x TEMP_ENV="temp"
+c21: [prefixed]
+c22: after [unset]
+c23: [unset]
+c24: append to readonly 1
+c25: re-readonly without value 0
+c26: 1
+c27: local readonly gone after return 2
+c28: declare -x E6="with space"
+c29: declare -x A1="1"
+c29: declare -x A2="2"
+c30: 1
+c31: R defined
+c31: DR defined
+c31: E1 defined

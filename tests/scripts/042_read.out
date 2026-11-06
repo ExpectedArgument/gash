@@ -1,0 +1,51 @@
+c1: [1] [2] [3 4 5]
+c2: [only] [] []
+c3: [back\slash]
+c4: [backslash]
+c5: [trailing] 1
+c6: [linecontinued]
+c7: [line\]
+c8: [a] [b] [c:d]
+c9: [1] [2]
+c10: [1] [2,3,]
+c11: [] [x]
+c12: [lead and trail]
+c13: [   lead and trail   ]
+c14: [  reply var  ]
+c15: 3 z
+c16: 3 []
+c17: [first] 0
+c18: status 1 [no delim]
+c19: [abc]
+c20: [ab]
+c21: [ab c]
+c22: [  indented]
+c22: [	tabbed]
+c22: [last]
+c23: a
+c23: leftover [b]
+c24: a
+c24: b
+c25: eof status 1 []
+c26: y x
+c27: [] []
+c28: [a] [c] []
+c29: [a] [c] []
+c30: 0
+c31: alpha => 1
+c31: beta => two words
+c32: [nl delim]
+c33: [a]
+c34: [p q]
+c34: [r]
+c35: 4 [] [d]
+c36: [first]
+c37: L1 L2
+c38: root 0
+c39: [x]
+c40: [a b]
+c41: [  ab]
+c42: 3 [multiple spaces here]
+c43: [escaped\x]
+c44: 4 lines
+c45: y 3

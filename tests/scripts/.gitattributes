@@ -1,0 +1,4 @@
+# Scripts must stay LF (bash on MSYS chokes on CRLF); expected outputs are byte-exact.
+*.sh   text eol=lf
+*.out  -text
+*.code -text

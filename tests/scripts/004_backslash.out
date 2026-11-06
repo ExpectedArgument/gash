@@ -1,0 +1,35 @@
+c1: a b
+c2: a\b
+c3: a\b
+c4: a\\b
+c5: $HOME_not
+c6: 'single'
+c7: \n stays in dq
+c8: n becomes n
+c9: linecontinued
+c10: *?[
+c11: a\b
+c12: a\b
+c13: \\
+c14:
+\\
+c15: \$
+c16: \$
+c17: back\slash 10
+c18: \"
+c19: escaped star matches literally
+c20: escaped star does not glob
+c21: "nested" "quotes"
+c22: abc
+c23: \{ \} \( \)
+c24: {a,b}
+c25: ;&|<>
+c26: tab\there
+c27: continued unquoted
+c28: ab
+c29: \\ is two
+c30: \\ unquoted
+c31: 2
+c32: \a\b\c
+c33: a"b'c
+c34: escaped glob in var pattern

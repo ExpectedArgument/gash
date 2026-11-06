@@ -1,0 +1,33 @@
+c1: a.c b.c
+c2: a.h aa aaa ab test.o
+c3: aa aaa
+c4: ab
+c5: ab
+c6: b.c main.c test.o
+c7: a.c a.h b.c main.c
+c8: @(nomatch|zzz)
+c9: foo exact
+c9: foobar foo*bar
+c9: barfoo other
+c9: bar exact
+c9: [] empty
+c10: letters then digits
+c11: negation fails on exact
+c12: negation matches other
+c13: [trim me]
+c14: X-bbb
+c15: archive
+c16: excluded txt
+c17: aa aaa
+c18: a.c a.h
+c19: a.c a.h b.c main.c test.o
+c20: ?() matches empty
+c21: ?() at most one
+c22: *() repeats
+c23: +() needs one
+c24: nested pattern
+c25: glob inside alternation
+c26: a!(b)c vs abc
+c27: a!(b)c vs axc
+c28: 42
+c29: extglob from variable

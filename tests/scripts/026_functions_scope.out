@@ -1,0 +1,43 @@
+c1: x=f1local
+c2: x=f2modified
+c3: x=f2modified
+c4: x=global
+c5: [unset] [empty]
+c6: y outside [unset]
+c7: changed_global
+c8: 2
+c9: middle sees v=outer
+c10: after middle v=middle_set
+c11: global v=[unset]
+c12: 3
+c13: [unset]
+c14: 3
+c15: 2
+c16: 1
+c17: depth 0 5
+c17: depth 1 4
+c17: depth 2 3
+c17: depth 3 2
+c18: local masks status 0
+c19: separate assign 1
+c20: a,b,c
+c21: a b c
+c22: declare in function is local [unset]
+c23: globalized
+c24: after unset local [unset]
+c25: in uq after inner unset [gx]
+c26: global x=gx
+c27: status 1
+c28: 2
+c29: 3
+c30: 1 2 3
+c31: 10
+c32: k still 5
+c33: base_suffix
+c34: base
+c35: subshell 2
+c36: 1
+c37: 10
+c38: local outside function status 1
+c39: from_func [unset]
+c40: sees later global [defined_after]

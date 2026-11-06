@@ -1,0 +1,33 @@
+c1: tab	here
+c2: newline
+second
+c3: single ' quote
+c4: backslash \ done
+c5: hex AB octal AB
+c6: esc ^[ end
+c7: ^G^H^L^K^M
+c8: double " quote and " escaped
+c9: control ^A^Z
+c10: HI
+c11: mix	ed
+c12: 3
+c13: [*]
+c14: unknown \q escape
+c15: JKz
+c16: A0
+c17: ?
+c18: '
+c19: $'not ansi in dquotes' $'x'
+c20: [trailing
+]
+c21: dollar \$ literal
+c22: ^[
+c23: 2
+c24: [*]
+c25: onetwo three!
+c26: \x
+c27: case with ansi pattern
+c28: newline matches ?
+c29: 2
+c30: 1
+c31: ~ ~

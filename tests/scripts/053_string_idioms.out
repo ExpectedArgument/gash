@@ -1,0 +1,53 @@
+c1: [hello world]
+c2: [hello world   ]
+c3: 4 c
+c4: a
+c4: b
+c4: c
+c4: d
+c5: 4 c
+c6: x,y,z
+c7: a - b - c
+c8: base=report.final.pdf dir=/home/user/docs ext=pdf stem=report.final
+c9: /HOME/USER/DOCS/REPORT.FINAL.PDF
+c10: john JOHN
+c11: [John      ][      John][00042]
+c12: [====================]
+c13: len=11
+c14: s count=4
+c15: ippississim
+c16: contains ssi
+c17: startswith miss
+c18: endswith pi
+c19: miSSissippi miSSiSSippi
+c20: m i
+c21: Mississippi
+c22: 4 words, last=fox
+c23: 4
+c24: city|age|name
+c25: ababab
+c26: 007
+c27: k=key v=value=more
+c28: https example.com
+c29: 1 22 3
+c30: version ok
+c31: all lower
+c32: random in range
+c33: dice in range
+c34: a.b.c.d
+c35: 3 lines, first=line1, last=line3
+c36: Hello Big World
+c37: [42] int
+c37: [-7] int
+c37: [3.5] not int
+c37: [abc] not int
+c37: [] not int
+c38: hello_world_foo_bar
+c39: helloWorldFoo
+c40: [   hi   ]
+c41: a b c 
+c42: case-insensitive compare
+c43: ff1001
+c44: 97 B
+c45:    x
+c45:    y

@@ -1,0 +1,33 @@
+c1: -f: 0 1 1
+c2: -d: 0 1 1
+c3: -e: 0 0 1
+c4: -s: 0 1 1
+c5: -r: 0 1
+c6: -w: 0 1
+c7: -nt: 0 1 0 1
+c8: -ot: 0 1 0
+c9: 0
+c10: 0
+c11: 0
+c12: 0
+c13: -ef 0
+c14: 1
+c15: var path
+c16: relative dots 0
+c17: -L/-h: 1 1
+c18: mkdir -p
+c19: cd into nested
+c20: 1
+c21: 0
+c22: nonempty file.txt
+c23: empty name 1
+c24: dot dirs
+c25: no longer empty
+c26: file not dir
+c27: trailing slash dir 0
+c28: trailing slash file 1
+c29: missing nested
+c30: content check
+c31: combined: 0 0 0
+c32: created on demand
+c33: removed 1

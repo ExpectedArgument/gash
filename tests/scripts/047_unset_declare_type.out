@@ -1,0 +1,55 @@
+c1: [unset]
+c2: [unset]
+c3: func unset status 1
+c4: [unset] function
+c5: []
+c6: unset missing status 0
+c7: 1 3 2
+declare -- s="hello"
+declare -i i="42"
+declare -a arr=([0]="one" [1]="two words")
+declare -r ro="const"
+declare -x ex="exported"
+declare -l lo="abc"
+declare -- q="say \"hi\" \$USER \\ back\`tick\`"
+c8: declare -p missing 1
+declare -a sparse=([1]="a" [5]="b")
+declare -- empty
+declare -a emptyarr=()
+declare -A assoc1=([key]="val" )
+declare -ai intarr=([0]="1" [1]="2")
+declare -rx rox="both"
+c9: builtin keyword file builtin keyword builtin
+c10: function alias []
+c11: status 1
+c12: echo if myfunc declare
+c13: status 1
+c14: alias myalias='echo aliased'
+c15: echo is a shell builtin
+c16: if is a shell keyword
+c17: builtin
+wrapped: c18: x
+c19: command bypasses function
+c20: builtin
+c21: restored
+myfunc
+c22: 0
+c23: 1
+c24: type -P finds external 0
+c25: true is a shell builtin
+c26: 7
+c27: 3 + 4
+c28: unset readonly status 1 1
+c29: 0
+c30: myfunc is a function
+c31: myalias is aliased to `echo aliased'
+c32: not found
+c33: echo is a shell builtin
+c34: [uu]
+declare -a nums=([1]="1" [2]="2")
+c35: 0
+declare -i calc="25"
+declare -- dash_var="plain"
+declare -- nl=$'line1\nline2'
+declare -- tabv=$'a\tb'
+declare -- gl="1"

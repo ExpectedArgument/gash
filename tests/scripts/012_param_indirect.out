@@ -1,0 +1,31 @@
+c1: the value
+c2: y
+c3: x y z
+c4: myvar_a myvar_b myvar_c
+c5: myvar_a myvar_b myvar_c
+c6: myvar_a=1
+c6: myvar_b=2
+c6: myvar_c=3
+c7: 'it'\''s a '\''test'\'''
+c8: 'plain'
+c9: $'tab\there'
+c10: ''
+c11: 'a b' 'c'
+c12: PLAIN Plain it's a 'test'
+c13: i a 
+c14: A
+c15: a^Ib$
+c16: t='plain'
+c17: declare -i num='5'
+c18: the value
+c19: changed
+c20: set by setter
+c21: 3 c d
+c22: p2 p3
+c23: 20
+c24: [] [fallback]
+c25: '$dollar "dq" back\slash'
+c26: z 3
+c27: 10
+c28: myvar_a
+c29: PLAIN 1

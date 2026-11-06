@@ -1,0 +1,55 @@
+c1: [5] digit
+c1: [x] letter
+c1: [Q] letter
+c1: [notes.txt] text-file
+c1: [] blank
+c1: [ ] blank
+c1: [quoted*] literal-star
+c1: [quotedX] other
+c1: [??] other
+c2: a*
+c2: *c
+c2: final default
+c3: one
+c3: two (fell)
+c3: three (fell)
+c4: no match status 0
+c5: status 3
+c6: quoted with space
+c7: unquoted var pattern globs
+c8: quoted var pattern literal
+c9: literal match
+c10: leading paren
+c11: class
+c12: dash in bracket
+c13: bracket first
+c14: negated set
+c15: empty matches ''
+c16: no trailing ;;
+c17: empty body status 0
+c18: h*o
+c19: contains
+c20: two digits
+c21: yes
+c22: has dot
+c23: ?b?
+c24: backslash
+c25: two
+c25: digit
+c25: any
+c26: z
+c26: y fell
+c27: first alternative
+c28: multi-line body 1
+c28: multi-line body 2
+c29: a.sh -> bash
+c29: b.py -> python
+c29: c.rs -> rust
+c29: d -> unknown
+c30: arithmetic word
+c31: cmdsub word
+c32: keyword-like word
+c33: escaped star pattern
+c34: first
+c35: var in alternative
+c36: esac as quoted pattern

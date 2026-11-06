@@ -1,0 +1,26 @@
+c1: line1 line2 
+c2: r1 r2 r3
+c3: appended
+c4: closed fd write status 1
+to-orig
+c5: [to-captured]
+c6: a
+c6: b
+c7: written
+c8: via3
+c9: fd from func
+c10: auto fd fd>=10:1
+c11: inner-err
+c12: goes to file
+c13: r1
+c13: r2
+c13: r3
+c14: r1 r2 r1
+c15: grouped to fd
+c16: one two 
+c17: bypass
+piped c17: to stdout of group
+c18: closed stdin cat status 1
+c19: exec in subshell
+c20: moved
+c21: fd moved and closed status 0

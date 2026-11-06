@@ -1,0 +1,43 @@
+c1: 5 a
+c2: 4 b
+c3: 2 d d e
+c4: status 1 2
+c5: 2 d
+c6: 0 []
+c7: status 1 0
+c8: 2 [x y]
+c9: 0
+c10: a0 j k
+c11: k k
+c12: 11
+c13: d e
+c14: d
+c14: e
+c15: in func 2 b c
+c16: outer still 2 out1 out2
+c17: 3 -x
+c18: 2 --
+c19: 3 b
+c20: a b c d
+c21: a c d
+c22: 3 q
+c23: *
+c24: errexit off
+c24: noglob off
+c24: nounset off
+c24: pipefail off
+c25: e in $-
+c26: e cleared
+c27: *
+c28: nullglob on
+c29: 1
+c30: multiple shopt
+c31: u in $-
+c32: 3
+c33: [a b]
+c33: [c d]
+c34: 2 4 1
+c35: two one two
+c36: pipefail on
+c37: shopt -u nullglob
+c38: set +o noclobber

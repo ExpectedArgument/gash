@@ -1,0 +1,44 @@
+c1: key=value123 | key | value | 123
+c2: 4
+c3: 1 count=0
+c4: 0
+c5: 1
+c6: 0
+c7: quoted literal 1
+c8: 0
+c9: partial quote 1
+c10: escaped space 0
+c11: [ ]
+c12: unanchored [y]
+c13: greedy [aaa]
+c14: [abcabc] [abc]
+c15: [] [a] 4
+c16: invalid regex status 2
+c17: 15/01/2024
+c18: 0
+c19: 0
+c20: alternation 0
+c21: email ok
+c22: 1
+c22: 22
+c22: 333
+c23: empty match 0 []
+c24: 0
+c25: 0
+c26: nocasematch regex 0
+c27: 1
+c28: aabbb aa bbb
+c29: 0
+c30: 1
+c31: 0
+c32: bar-foo
+c33: [i] [] 3
+c34: last repetition [2]
+c35: 0
+c36: 1
+c37: 0
+c38: 0
+c39: 0
+c40: 0
+c41: negated regex
+c42: 1 2 3 [rc1]

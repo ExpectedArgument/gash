@@ -1,0 +1,44 @@
+c1: 1 2 [val with spaces]
+c2: 3
+c3: [key with spaces]=[val with spaces]
+c3: [one]=[1]
+c3: [two]=[2]
+c4: 1
+c4: 2
+c4: val with spaces
+c5: 0
+c6: 1
+c7: 0
+c8: 2 [unset]
+c9: 4 3
+c10: 2more
+c11: 6
+c12: dyn dyn
+c13: 0
+c14: apple 3
+c14: banana 2
+c14: cherry 1
+c15: one zero-one 2
+c16: letter-i one
+c17: a=1
+c17: b=2
+c17: c=3
+c17: dynamic key=dyn
+c18: 0
+c19: [x] [y z]
+c20: declare -A one=([only]="1" )
+c21: 1
+c22: [none]
+c23: [space] 1
+c24: x y 
+c25: x -> 1
+c25: y -> 2
+c26: dot slash dollar
+c27: replaced 1
+c28: +set idiom says missing
+c29: +set idiom says present
+c30: 2 5
+c31: [double] [double]
+c32: [double]
+c33: alice 30 paris
+c34: 2

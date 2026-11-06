@@ -1,0 +1,65 @@
+c1: a\ b
+c1: it\'s
+c1: a\$b
+c1: ''
+c1: plain
+c1: a\"b
+c1: x\*y
+c2: $'tab\there'
+c2: $'new\nline'
+c3: a	b
+c3: c\nd
+c3: AA
+c3: no-escape
+c4: stopc5: after
+c6: [formatted 007]
+c7: elem
+c8: a,b,c,
+c9: []
+c10: %s and \n in args are literal
+c11: x-y
+c12: name    |   value|
+c12: key     |      42|
+c13: ----------
+c14:  50%
+c15: a
+c15: b
+c15: c
+c16: \ ^G
+c17: ^[[1m
+c18: \~home
+c18: \#hash
+c18: semi\;colon
+c18: back\\slash
+c19:     x|
+c20: [a
+b]
+c21: \t 	
+c22: 1.00
+c23: 007
+c24: +3   |
+c25: [^@]
+c26: -v
+c27: 5
+c28: -003.142
+c29: 15|   16
+c30: $'a\001b'
+c31: A
+c31: A
+c31: A
+c32: a\ b c\'d
+c33: it's here
+c34: a\|b\&c\<d\>e\(f\)g
+c35: no newline
+c36: AB C
+c37: %d
+c38: end
+c39: [     ]
+c40: ----------
+c41: \[brackets\]
+c41: \{braces\}
+c41: \!bang
+c42:    ab|
+c43: 7
+c43: x
+c44: trailing\n

@@ -1,0 +1,67 @@
+c1
+  a
+  b=val
+  c
+  rest: 2 [file1 file2] OPTIND=5
+c2
+  a
+  c
+  b=val
+  rest: 0 [] OPTIND=3
+c3
+  b=with space
+  rest: 1 [-a] OPTIND=4
+c4
+  rest: 2 [file -a] OPTIND=1
+c5
+  invalid [unset]
+  a
+  rest: 0 [] OPTIND=3
+c6
+  invalid [unset]
+  rest: 0 [] OPTIND=2
+c7
+  rest: 0 [] OPTIND=1
+c8
+  a
+  b=X
+  rest: 0 [] OPTIND=2
+c9
+  a
+  unknown -z
+  missing arg for -b
+  OPTIND=4
+c10
+  b=-a
+  OPTIND=3
+c11
+  OPTIND=2
+c12
+  b=a
+  OPTIND=2
+c13: a 
+c13: b gv
+c14: rest
+c15: 0 a
+c16: 1 [?]
+c17: 1 [?]
+c18: 1 [?]
+c19: 0 [?] [unset]
+c20: 0 [?] [q]
+c21
+  n=5
+  v
+  n=-3
+  next=target
+c22
+  v
+  n=10
+  next=none
+c23
+  n=
+  v
+  next=none
+c24
+  got x
+  got x
+  got x

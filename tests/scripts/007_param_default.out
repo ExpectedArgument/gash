@@ -1,0 +1,39 @@
+c1: [def] [def] [set]
+c2: [def] [] [set]
+c3: [] [] [alt]
+c4: [] [alt] [alt]
+c5: [assigned] u=[assigned]
+c6: [filled] e=[filled]
+c7: [] e=[]
+c8: [eq] u=[eq]
+c9: status 1
+c10: status 1
+c11: reached (empty is set)
+c11: status 0
+c12: ok
+c12: status 0
+c13: eq quoted default
+c14: dval dvalx
+c15: a b   c
+c16: 3
+c17: 1
+c18: 'single quoted'
+c19: $literal
+c20: alt with space
+c21: 0
+c22: x y z 1
+c23: first no-arg2
+c24: empty-array
+c25: initialized
+c26: deep
+c27: positional :? status 0
+c28: positional :? status 1
+c29: [x]
+c30: [still unset in parent]
+c31: oob b
+c32: assigned3 3
+c33: both
+c34: local default local unset
+c35: [] [] [eq]
+c36: 15
+c37: *

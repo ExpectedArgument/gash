@@ -1,0 +1,56 @@
+$ mytool -h
+Usage: mytool [-h] [-V] [-v] [-n COUNT] [-o FILE] [-m MODE] ARGS...
+  -h        show help
+  -V        show version
+  -v        verbose (repeatable)
+  -n COUNT  number of iterations (default 1)
+  -o FILE   output file
+  -m MODE   one of: fast, safe
+  (exit 0)
+$ mytool -V
+  mytool version 1.4.2
+  (exit 0)
+$ mytool a b
+  verbose=0 count=1 outfile=<stdout> mode=safe
+  1: A
+  1: B
+  (exit 0)
+$ mytool -v -n 2 x
+  verbose=1 count=2 outfile=<stdout> mode=safe
+  1: X
+  2: X
+  (exit 0)
+$ mytool -vv -n2 -m fast two words
+  verbose=2 count=2 outfile=<stdout> mode=fast
+  [debug] iteration 1 arg 'two words'
+  1: TWO WORDS
+  [debug] iteration 2 arg 'two words'
+  2: TWO WORDS
+  (fast mode skipped 1 redundant passes)
+  (exit 0)
+$ mytool -n abc x
+  -> bad count 'abc'
+  (exit 2)
+$ mytool -m turbo x
+  -> invalid mode 'turbo'
+  (exit 2)
+$ mytool -o
+  -> option -o requires an argument
+  (exit 2)
+$ mytool -z x
+  -> unknown option -z
+Usage: mytool [-h] [-V] [-v] [-n COUNT] [-o FILE] [-m MODE] ARGS...
+  (exit 2)
+$ mytool -v
+  -> no args
+  (exit 1)
+$ mytool -o out.txt -- -notanoption
+  verbose=0 count=1 outfile=out.txt mode=safe
+  1: -NOTANOPTION
+  (exit 0)
+$ mytool -vvv -n 1 last
+  verbose=3 count=1 outfile=<stdout> mode=safe
+  [debug] iteration 1 arg 'last'
+  1: LAST
+  (exit 0)
+done: mytool 1.4.2

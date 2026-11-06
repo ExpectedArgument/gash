@@ -1,0 +1,62 @@
+c1: 5 5
+c2: 0 1 2 3 4
+c3: two words three
+c4: [two words]
+c4: [three]
+c5: [one]
+c5: [two words]
+c5: [three]
+c5: []
+c5: [five]
+c6: [one]
+c6: [two]
+c6: [words]
+c6: [three]
+c6: [five]
+c7: [one two words three  five]
+c8: [one-two words-three--five]
+c9: 1 3 7 | a c g | 3
+c10: c g
+c11: a
+c12: g g []
+c13: 
+c14: [<one]
+c14: [<two words]
+c14: [<three]
+c14: [<]
+c14: [<five]
+c15: [one]
+c15: [two word]
+c15: [three]
+c15: []
+c15: [five]
+c16: 0 [] []
+c17: []
+c18: 0
+c19: three three two words three
+c20: one
+c21: 9
+c22: [0]
+c22: [1]
+c22: [2]
+c22: [3]
+c22: [4]
+c23: [One]
+c23: [Two words]
+c23: [Three]
+c23: []
+c23: [Five]
+c24: [xone]
+c24: [two words]
+c24: [three]
+c24: []
+c24: [fivey]
+c25: 5
+c26: 5
+c27: 1
+c28: g g
+c29: s[1]=a
+c29: s[3]=c
+c29: s[7]=g
+c30: 1 3
+c31: one two words+five

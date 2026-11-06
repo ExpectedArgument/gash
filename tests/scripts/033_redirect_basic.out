@@ -1,0 +1,42 @@
+c1: first
+c1: second
+c2: overwrite
+c3: 1
+c4: overwrite
+c5: out=[out] err=[err]
+c6: err out 
+c7: err out 
+c8: 3
+c9: order matters [err]
+c10: both null []
+c11: [e1]
+c12: [] 1
+c13: status 1
+c14: data
+c15: data
+c16: prefix-redirect
+c17: a
+c18: size 0
+c19: hello
+c20: dynamic
+c21: [] [multi]
+c22: ok
+c23: 3
+c24: data
+c25a: [to stderr]
+c25: after stderr echo
+c26: [via fd2]
+c27: subshell err
+c27: subshell out
+c28: devnull input status 0
+c29: []
+c30: devnull output
+c31: var-target
+c32: failed cd status 1
+c33: missing input status 1
+c34: x
+c34: y
+c35: 2
+c36: data x y 
+c37: redirect in middle
+c38: []

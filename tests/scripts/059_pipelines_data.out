@@ -1,0 +1,25 @@
+c1: ABC
+c2: a b 
+c3: err-line
+c4: stderr-via-pipe-amp
+c5: from func
+c5: status 3 0
+c6: two
+c7: subshell got x
+c8: a B
+c9: 1
+c10: 4
+c11: hi
+c12: piped-into-cmdsub
+c13: x
+c13: y
+c14: 0 1 then 0 1
+c15: 0
+c16: 1
+c17: negated pipefail 0
+c18: 3 2 1 
+c19: [a] [b c]
+c20: got 1
+c20: got 2
+c21: x after group in pipe 1
+c22: 3 9

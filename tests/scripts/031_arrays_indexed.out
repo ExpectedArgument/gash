@@ -1,0 +1,48 @@
+c1: zero two 3
+c2: 5 [four five]
+c3: 6 0 1 2 3 4 10
+c4: 5 0 2 3 4 10
+c5: 0 2 3 4 10 11
+c6: eleven ten
+c7: [zero]
+c7: [two]
+c7: [three]
+c7: [four five]
+c7: [ten]
+c7: [eleven]
+c8: 0 1 2 3 4 5
+c9: 3 4 x y
+c10: 0 2 zero two
+c11: 0 5 6
+c12: 3
+c13: 1
+c14: one two_appended three
+c15: [gone] 0
+c16: 1 2 3
+c17: a X b c
+c18: 0 1 2 a c d
+c19: 10 20 30
+c20: 0
+c21: first first
+c22: x y 2
+c23: 0
+c24: b
+c25: 3
+c26: hello 1
+c27: b c a b
+c28: c b
+c29: 2
+c30: contains b
+c31: no q
+c32: a B c
+c33: 4
+c34: 3 []
+c35: 0 1
+c36: two five | 2 5
+c37: c d e | d e
+c38: popped 3, left 1 2
+c39: dequeued a, left b c (2)
+c40: 00 01 10 11
+c41: c b a
+c42: longest=quick
+c43: the THE

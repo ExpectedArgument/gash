@@ -1,0 +1,51 @@
+c1: 31 16 255
+c2: 15 8 0
+c3: 10 15 255 35 35
+c4: 62 63 10 36
+c5: 10 99
+c6: status 1
+c7: status 1
+c8: status 1
+c9: status 1
+c10: status 1
+c11: after (( )) status 1
+c11: subshell status 0
+c12: 8
+c13: 16 1
+c14: status 1
+c15: status 0
+c16: 1024
+c17: 2
+c18: 10
+c19: 13
+c20: 6
+c21: 0
+c22: 7
+c23: 16
+c24: 8
+c25: 53
+c26: 2 4
+c27: status 1
+c28: 8
+c29: 10
+c30: status 1
+c31: status 1
+c32: 1 10 36
+c33: status 1
+c34: 255 9223372036854775807
+c35: 20
+c36: 5 10
+c37: 1 0
+c38: 9
+c39: -5 5
+c40: let div0 status 1
+c41: status 1
+c42: 511 511
+c43: arithmetic expansion error aborts only the current command list
+c45: next line still runs
+c48: next line runs, status 1
+c49: in if
+c52: after if, status 1
+c54: after loop
+c55: in f
+c59: end status 1

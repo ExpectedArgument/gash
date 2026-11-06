@@ -1,0 +1,40 @@
+c1: 4: [a b] [c] [] [d  e]
+c2: 5: [a] [b] [c] [d] [e]
+c3: 1: [a b c  d  e]
+c4: 5: [a] [b] [c] [d] [e]
+c5: 1: [a b,c,,d  e]
+c6: 4: [a b] [c] [] [d  e]
+c7: 4: [a b] [c] [] [d  e]
+c8: 4: [a b] [c] [] [d  e]
+c9: 1: [a b:c::d  e]
+c10: 1: [a bcd  e]
+c11: 3: [a b] [c] [d  e]
+c12: 3: [a b] [c] [d  e]
+c13: 1: [a b c  d  e]
+c14: 5: [a] [b] [c] [d] [e]
+c15: 3: [c] [] [d  e]
+c16: 2: [c] []
+c17: 1: [c  d  e]
+c18: 1: [d  e]
+c19: 1: [a bx]
+c20: 11: [1] [2] [3] [4] [5] [6] [7] [8] [9] [ten] [eleven]
+c21: 11 [1] [ten] [eleven]
+c22: 0:
+c23: 1: []
+c24: 1: [x]
+c25: 0:
+c26: 1: [xoney]
+c27: 2: [xa] [by]
+c28: 1: [prea bpost]
+c29: 2: [prea] [bpost]
+c30: 2: [x] [y]
+c31: 2: [] [ y]
+c32: 1: [x y]
+c33: a,b,c
+c34: 1: [p q+r]
+c35: 2: [p q] [r]
+c36: 2: [p q] [r]
+c37: 3
+c37: 0
+c37: 1
+c37: 0

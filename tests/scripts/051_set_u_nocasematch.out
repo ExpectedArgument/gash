@@ -1,0 +1,37 @@
+c1: status 1
+c2: default
+c3: dash
+c4: status 1
+c5: 0
+c6: []
+c6: status 0
+c7: [] [] 0
+c7: status 0
+c8: status 1
+c9: empty ok []
+c10: none
+c11: status 1
+c12: status 1
+c13: -v safe
+c14: unset-local
+c15: status 1
+c16: oob
+c17: status 1
+c18: 0
+c19: |
+c20: assigned
+c21: before
+c21: status 1
+c22: 1 
+c23: 0
+c24: 0
+c25: case insensitive
+c26: bracket insensitive
+c27: 1
+c28: regex 0
+c29: 1
+c30: sensitive again
+c31: Readme.TXT
+c32: *.txt
+c33: Hello
+c34: bye

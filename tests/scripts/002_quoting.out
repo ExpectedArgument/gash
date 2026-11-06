@@ -1,0 +1,42 @@
+c1: $x not expanded
+c2: hello world expanded
+c3: 'single inside double' hello world
+c4: "double inside single"
+c5: escaped $x "quote" \ backslash ` tick
+c6: backslash before other \a \q stays
+c7: backslash in single \n \\ stays
+c8: abcdefgh
+c9: [hello world] [${x}]
+c10: unquoted empty -> 0 args
+c11: quoted empty -> 1 args
+c12: two empty literals -> 2 args
+c13: 1
+c14: it's it's it's
+c15: mixed concat
+c16: [*]
+c17: hello world$x	|
+c18: multi
+line string
+c19: single
+multi
+c20: a b c
+c21: a  b   c
+c22: 0 11
+c23: "escaped space"
+c24: ab
+c25: dollar at end $
+c26: $(not cmd) and `not`
+c27: tilde ~ in quotes ~
+c28: ~
+c29: $x $x
+c30: 2 []
+c31: [  padded  ] [ padded ]
+c32: done
+c33: 'nested single via double'
+c34: inner quoted 'single in alt'
+c35: a  b|
+c36: "escaped dq outside"
+c37: hello worldsuffix prehello world
+c38: $
+c39: $$
+c40: it's "quoted"

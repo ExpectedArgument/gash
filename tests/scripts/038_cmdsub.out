@@ -1,0 +1,32 @@
+c1: hello
+c2: backtick
+c3: [trail]
+c4: [
+
+lead]
+c5: [a
+b]
+c6: nested
+c7: inner-backtick
+c8: quoted inner
+c9: 3
+c10: 1
+c11: 0
+c12: [out] 4
+c13: [file content
+line2]
+c14: 18
+c15: a
+b
+c16: a b
+c17: 10
+c18:   spaced  |
+c19: 123
+c20: single $(not expanded)
+c21: $(literal)
+c22: one two
+c23: it's
+c24: a\b
+c25: a\b
+c26: [xbacktick]
+c27: 0

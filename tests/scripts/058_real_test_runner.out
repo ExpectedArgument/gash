@@ -1,0 +1,15 @@
+discovered 10 tests
+test_arith                   PASS
+test_arrays                  PASS
+test_errexit_in_subshell     PASS
+    assertion failed: fruit check: expected [apples] got [oranges]
+test_failing_on_purpose      FAIL (rc=1)
+test_isolation               PASS
+test_pipefail_set            PASS
+test_regex                   PASS
+test_status                  PASS
+test_strings                 PASS
+test_trap_in_cmdsub          PASS
+GLOBAL_LEAK after run: [unset]
+== summary: 9 passed, 1 failed ==
+   failed: test_failing_on_purpose

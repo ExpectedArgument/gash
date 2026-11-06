@@ -1,0 +1,21 @@
+c1: 1
+c2: 0
+c3: 0 1 0
+c4: 1 0 3
+c5: 2 5 2
+c6: 0
+c7: 1
+c8: pipefail 1
+c9: 4
+c10: rightmost failing 3
+c11: 0
+c12: 0
+c13: 1
+c14: 0
+c15: 0
+c16: 0
+c17: outer
+c18: [unset]
+c19: inside [piped]
+c20: 0
+c21: 6

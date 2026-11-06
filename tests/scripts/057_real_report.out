@@ -1,0 +1,27 @@
+REGION   PRODUCT   UNITS        PRICE        REVENUE
+----------------------------------------------------
+north    widget      120        $2.50        $300.00
+south    widget       80        $2.50        $200.00
+north    gadget       15       $19.99        $299.85
+east     widget      200        $2.40        $480.00
+south    gizmo         7      $100.50        $703.50
+east     gadget       30       $18.99        $569.70
+west     gizmo         0       $99.00          $0.00
+north    gizmo         3      $100.50        $301.50
+----------------------------------------------------
+TOTAL    (8)                               $2,854.55
+
+Revenue by region:
+  east      $1,049.70  36.7% |##############################
+  north       $901.35  31.5% |#########################
+  south       $903.50  31.6% |#########################
+  west          $0.00   0.0% |
+
+Units by product (sorted by units desc):
+  widget     400
+  gadget      45
+  gizmo       10
+
+Zero-unit lines: west/gizmo
+Average revenue per line: $356.81
+Negative format check: -$123.45

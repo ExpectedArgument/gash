@@ -1,0 +1,35 @@
+c1: g1 g2 
+c2: 1 l1
+c2: 2 l2
+c2: 3 l3
+c3: n after loop = 3
+c4: 3
+c5: in-if
+c6: sub2
+c7: in-case
+c8: in-func
+c9: body-redirect
+c10: 1
+c11: l1 l2
+c12: l1
+c13: noclobber status 1
+c14: original
+c15: forced
+c16: 2
+c17: new file ok 0
+c18: /dev/null ok 0
+c19: clobbered
+c20: out
+c21: filled
+c22: l1
+c22: l2
+c23: L1,L2,L3,
+c24: noclobber via set -o 1
+c25: subshell continues after failed redirect
+c25: status 0
+c26: 4
+c27: w:l3
+c28: loop1 loop2
+c29: l2
+c30: 6
+c31: stderr of group

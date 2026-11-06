@@ -1,0 +1,35 @@
+fib(0) = 0
+fib(1) = 1
+fib(2) = 1
+fib(10) = 55
+fib(20) = 6765
+fib(50) = 12586269025
+fib(90) = 2880067194370816120
+memo entries: 89
+move  1: disk 1 A -> B
+move  2: disk 2 A -> C
+move  3: disk 1 B -> C
+move  4: disk 3 A -> B
+move  5: disk 1 C -> A
+move  6: disk 2 C -> B
+move  7: disk 1 A -> B
+move  8: disk 4 A -> C
+move  9: disk 1 B -> C
+move 10: disk 2 B -> A
+move 11: disk 1 C -> A
+move 12: disk 3 B -> C
+move 13: disk 1 A -> B
+move 14: disk 2 A -> C
+move 15: disk 1 B -> C
+total moves: 15 (expected 15)
+perms: abcd abdc acbd acdb adbc adcb bacd badc bcad bcda bdac bdca cabd cadb cbad cbda cdab cdba dabc dacb dbac dbca dcab dcba 
+ackermann(2,3) = 9
+gcd(1071,462) = 21
+20! = 2432902008176640000
+digit sum of 987654321 = 45
+flatten: [a][b][c][d][e][f][g]
+reached depth 100
+binsearch 2 -> 0
+binsearch 13 -> 5
+binsearch 29 -> 9
+binsearch 4 -> -1

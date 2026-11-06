@@ -1,0 +1,60 @@
+c1: 0
+c2: 1
+c3: 0
+c4: 0
+c5: 1
+c6: 0
+c7: 1
+c8: 0
+c9: 0
+c10: 1
+c11: 0
+c12: 1
+c13: 0
+c14: 0
+c15: 1
+c16: 1
+c17: string compare 0
+c18: numeric 1
+c19: 0
+c20: 0
+c21: 0
+c22: 0
+c23: octal in [[ 0
+c24: arith in [[ 0
+c25: var name in numeric 0
+c26: 0
+c27: no splitting 0
+c28: 0
+c29: 0
+c30: -v set 0
+c31: -v unset 1
+c32: 0
+c33: 1
+c34: contains
+c35: 0
+c36: 0
+c37: 0
+c38: 0
+c39: 0
+c40: 0
+c41: option 1
+c42: 0
+c43: 0
+c44: precedence 0
+c45: 1
+c46: 0
+c47: partly quoted pattern 0
+c48: 0
+c49: 1
+c50: string eq 1
+c51: numeric eq 0
+c52: 0
+c53: 0
+c54: 0
+c55: in range
+c56: cmdsub 0
+c57: extglob in [[ (always on) 0
+c58: newline after && 0
+c59: 0
+c60: 0

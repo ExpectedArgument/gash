@@ -1,0 +1,48 @@
+c1: in subshell
+c1: subshell exit trap
+c2: trap on exit 3, status=3
+c2: subshell status 3
+c3: trap -- 'echo "c99: main EXIT trap, status $?"' EXIT
+c4: in f
+c4: RETURN trap
+c5: ERR at line 9
+c5: continues
+c6: no ERR fired
+c7: ERR status=4
+c7: after
+c8: g continues
+c8: after g
+c9: ERR inherited h
+c9: ERR inherited main
+c9: done
+c10: ERR
+c10: status 1
+c11: USR1 caught
+c11: after kill
+c12: trap -- '' SIGINT
+c13: reset []
+c14: replaced
+c15: exit in trap
+c15: status 9
+c16: [body
+c16: cmdsub trap]
+c17: trap -- 'echo "c17: multi"' EXIT
+c17: trap -- 'echo "c17: multi"' SIGINT
+c17: trap -- 'echo "c17: multi"' SIGTERM
+c17: multi
+c18: work
+c18: cleanup function
+c19: EXIT after set -e failure
+c19: status 1
+c20: trap sees var [late]
+c21: status in trap 1
+c21: subshell exit status 1
+c22: double-quoted trap expanded early: 1
+c23: cleanup saw 6
+c23: 6
+c24: pipeline ok
+c25: ERR 2
+c25: done
+c26: trap removed
+c27: last line before main exit
+c99: main EXIT trap, status 3

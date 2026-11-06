@@ -1,0 +1,22 @@
+warning: line 16 unparsable: 'this line is garbage'
+sections: database paths
+keys: 11
+database.host        = [localhost]
+database.last        = [no trailing newline]
+database.password    = [p@ss w0rd]
+database.pool        = [10]
+database.port        = [5432]
+database.user        = [admin]
+global.name          = [demo app]
+global.version       = [2.1]
+paths.empty          = []
+paths.logs           = [${root}/logs]
+paths.root           = [/srv/app]
+db host: localhost
+db port+1: 5433
+missing: 30
+empty: []
+logs: /srv/app/logs
+errors: 1 lines: 20
+section database has 6 keys
+section paths has 3 keys

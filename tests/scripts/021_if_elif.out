@@ -1,0 +1,37 @@
+c1: -5 neg
+c1: 0 zero
+c1: 3 small
+c1: 42 big
+c2: true branch
+c3: else branch
+c4: negated
+c5: and-false
+c6: or-true
+c7: in condition group
+c7: group false
+c8: subshell condition
+c9: if in cmdsub
+c10: status after if with no branch 0
+c11: status 4
+c12: status 3
+c13: nested
+c14: one-liner
+c15: multiline elif
+c16: and-list
+c17: or fallback
+c18: chained or
+c19: chained and
+c20: test cmd
+c21: [[ in if
+c22: no branch taken 0
+c23: else after failing elif 6
+c24: body status 1
+c25: 0
+c26: 1
+c27: then on next line
+c28: semicolons 0
+c29: empty bodies ok
+c30: brace group
+c30: second
+c31: negated test
+c32: nested if as condition

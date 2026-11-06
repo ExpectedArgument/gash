@@ -1,0 +1,40 @@
+c1: the cog sat on the mat
+c2: the cog sog on the mog
+c3: a cat sat on the mat
+c4: the cat sat on the rug
+c5: the cat sat on the mat
+c6: the X sat on the X
+c7: the_cat_sat_on_the_mat
+c8: he ca sa on he ma
+c9: he cat sat on the mat
+c10: the <cat> <sat> on the <mat>
+c11: the <&> <&> on the <&>
+c12: the <&> <&> on the <&>
+c13: the X Y sat on the mat
+c14: the X Y sat on the mat
+c15: all
+c16: all S E
+c17: aaaaaa b
+c18: aaa
+c19: [] [pre] [suf]
+c20: >abc abc<
+c21: Apple pie bAnana cherry
+c22: pple pie bnn cherry
+c23: f0o bar -foo -bar
+c24: _b_c aXbaYc
+c25: a/b/c
+c26: a-b-c
+c27: a#b#c#
+c28: the+cat sat on the mat
+c29: e a a o e a
+c30: aandb
+c31: abbc
+c32: a&&c
+c33: a\c
+c34: :a:b:c
+c35: a/b/c
+c36: itQs
+c37:  cat sat on the mat
+c38:  cat sat on  mat
+c39: _b_abc
+c40: 1 + 2 + 3 = 6

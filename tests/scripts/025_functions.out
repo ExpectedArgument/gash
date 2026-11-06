@@ -1,0 +1,47 @@
+c1: hello world
+c2: function keyword 2
+c3: both forms
+c4: 3628800
+c5: 610
+c6: 0
+c7: 5
+c8: 255
+c9: 0
+c10: 44
+c11: 1
+c12: 9
+c13: 2 [a b] [c] [a b c]
+c13: 0 [] [] []
+c14: inside inner 1
+c15: outside outer1 2
+c17: inner not yet defined
+c16: inner defined at runtime
+c18: v1
+c18: v2
+c19: 2 0 2
+c20: function in if false 3
+c21: in or-list
+piped: c22: line1
+piped: c22: line2
+c23: subshell body inside
+c24: x=outside
+c25: names main 2
+c25: names caller_fn 3
+c26: []
+c27: dash in name
+c28: dot in name
+c29: before return
+c30: return -1 gives 255
+c31: conditional def
+c32: defined in if
+c33: 3
+c33: 2
+c33: 1
+c33: liftoff
+c34: reached depth 50 with 52 frames
+c35: 42 1
+c36: if as function body
+c37: for body 1
+c37: for body 2
+c38: redirect on definition hides output
+c39: 55

@@ -1,0 +1,37 @@
+c1: hello world
+c2: no newline|
+c3: tab	here
+c4: raw\tnot-tab
+c5: default no escapes\n
+c6: a\b
+c7: octal AB hex Ab
+c8: before|c8 end
+c9: combined
+c10: combined2
+-- c11: dashdash
+-x c12: unknown flag printed
+c13: after empty -n
+
+c14: after bare echo
+c15: ^[|^G|^K|^L
+c16: multiple   spaces preserved
+c17: unquoted collapsed spaces
+c18: ~~
+c19: Ab
+c20: trailing backslash \
+c21: -nE
+c22: ^@ nul
+c23: \101 not octal without zero
+c24: 
+ literal? 
+ real
+c25: double flag	
+c26: separate	flags
+c27: quoted flag still a flagc28: -n
+c29: ^Dg partial hex
+c30: \q unknown
+c31: xpg 	 on
+c32: xpg \t off
+c33: a b  c
+c34: inner|
+c35:  empty-arg $

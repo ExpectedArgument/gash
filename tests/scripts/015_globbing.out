@@ -1,0 +1,46 @@
+c1: a1 a2 apple.txt b1 banana.txt cherry.log dir1 dir2
+c2: apple.txt banana.txt
+c3: a1 a2
+c4: a1 a2 apple.txt b1 banana.txt
+c5: a1 a2 b1
+c6: b1 banana.txt cherry.log dir1 dir2
+c7: b1 banana.txt cherry.log dir1 dir2
+c8: *.nomatch
+c9: *.txt
+c10: dir1/ dir2/
+c11: |
+c12: 0
+c13: .hidden a1 a2 apple.txt b1 banana.txt cherry.log dir1 dir2
+c14: .hidden
+c15: .hidden
+c16: cherry.log
+c17: *.log
+c18: status 1
+c19: sub/x.txt
+c20: apple.txt banana.txt sub/deep/y.txt sub/x.txt
+c21: sub/ sub/deep sub/deep/y.txt sub/x.txt
+c22: [[:digit:]]*
+c23: a1 a2 b1 dir1 dir2
+c24: apple.txt
+c25: *
+c26: 2 banana.txt
+c27: a1
+c27: a2
+c27: apple.txt
+c28: case glob
+c29: [[ glob
+c30: banana.txt cherry.log
+c31: *
+c32: .hidden a1 a2 b1 cherry.log dir1 dir2 sub
+c33: a1 a2 apple.txt
+c34: a1 a2
+c35: a1 a2 apple.txt
+c36: sub/deep sub/x.txt
+c37: dir1/ dir2/ sub/
+c38: sub/deep/y.txt
+c39: a1 a2 b1 dir1 dir2
+c40: cherry.log dir1 dir2 sub
+c41: [sp ace.txt]
+c42: 1 [*.nomatch]
+c43: apple.txt banana.txt sp ace.txt cherry.log
+c44: banana.txt

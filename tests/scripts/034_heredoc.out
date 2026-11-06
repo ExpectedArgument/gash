@@ -1,0 +1,47 @@
+c1: Hello World
+c1: cmd sub arith 3
+c1: escaped $name and `tick` and backslash \
+c1: 'single quotes' "double quotes" kept
+c2: no $name expansion $(echo x) \$ \\
+c3: dq delimiter $name
+c4: escaped delimiter $name
+c5: tab stripped World
+c5: two tabs stripped
+c6: quoted tab-strip $name
+piped c7: into pipe
+c8: x-1
+c8: y-2
+c9: in function arg=arg1
+c10: in cmdsub
+c11: line continuation joined
+c12: no continuation in quoted \
+next
+c13: World 5 There
+c14: space before delimiter
+c15: empty heredoc ok
+c16: first
+c16: second
+c17: "World" 'World'
+  c17: leading spaces kept
+c18: read from heredoc
+c19: redirect after heredoc
+c20: 3
+c21: b a b
+c22: EOF not at start EOF
+ EOF
+  c23: spaces are not stripped by <<-
+  c23: only leading tabs
+c24: here-string
+c25: $name not expanded
+c26: World expanded
+c27: ansi	string
+c28: 1
+c29: 2
+c30: words here
+C31: UPPER
+c32: bytes 1
+c33: nested heredoc
+c34: long delimiter
+c35: inside if block
+c36: tab	in body kept
+c37: arithmetic 42 and $(( literal ))

@@ -1,0 +1,41 @@
+c1: 10
+c2: 20
+c3: hello
+c4: hello
+c5: $x literal
+c6: 1
+c6: 2
+c7: 1
+c8: 6
+c9: empty eval 0
+c10: syntax error status 2
+c11: 2 [b c]
+c12: it's
+c13: defined via eval
+c14: 2 3
+c15: p1 p2
+c16: 7
+c17: sourcing: args=2 first=p1
+c18: from lib
+c19: lib_func called with 2: a b
+c17: sourcing: args=2 first=s1
+c20: after dot with args, outer $1=p1
+c21: before return
+c21: status 4
+c22: 2
+c23: missing file status 1
+c24: 3
+c25: changed
+c26: changed
+c27: [yes]
+c28: [unset]
+c29: last status of sourced file 1
+c30: 2
+c31: multi
+c31: commands
+c32: nested
+c33: [a b]
+c34: 3
+c35: via printf
+c36: 3
+c37: double eval

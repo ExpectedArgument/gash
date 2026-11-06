@@ -1,0 +1,49 @@
+c1: start
+c1: status 1
+c2: if condition exempt
+c2: continues
+c3: && list exempt
+c4: || rescue
+c4: continues
+c5: negation exempt
+c6: f continues in condition context
+c6: f true
+c7: status 1
+c8: continues
+c9: pipeline last cmd decides
+c10: status 1
+c11: status 1
+c12: local masks
+c13: cmdsub continues without inherit_errexit
+c14: status 1
+c15: while condition exempt
+c16: until ok
+c17: status 1
+c18: status 1
+c19: 1
+c20: status 1
+c21: status 1
+c22: status 1
+c23: status 1
+c24: first in && list ok
+c24: status 0
+c25: disabled
+c26: status 1
+c27: status 1
+c28: status 1
+c29: status 3
+c30: rescued
+c31: assignment rescued
+c31: continues
+c32: set -e ignored inside subshell on left of &&
+c33: runs because caller is in && context
+c33: and
+c34: subshell in if condition continues
+c34: true
+c35: negated subshell ok
+c36: ok
+c37: before
+c38: test in && list ok
+c39: status 1
+c40: main before
+c41: about to fail
