@@ -282,6 +282,8 @@ pub struct Resolved {
     pub interp: Option<(PathBuf, ExeKind, Option<String>)>,
     /// For ExeKind::Coreutils: the utility name.
     pub util: Option<&'static str>,
+    /// For ExeKind::Script: the options on its `#!` line, as bash would be given them.
+    pub opts: Vec<String>,
 }
 
 static FAKE_PID: AtomicU32 = AtomicU32::new(0);

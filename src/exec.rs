@@ -1412,12 +1412,12 @@ impl Shell {
         match ext.as_str() {
             "exe" | "com" => {
                 if let Some(util) = crate::coreutils::get().and_then(|cu| cu.util_of(p)) {
-                    return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Coreutils, interp: None, util: Some(util) });
+                    return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Coreutils, interp: None, util: Some(util), opts: Vec::new() });
                 }
                 let kind = if path::is_msys_binary(p) || is_msys_dir(p) { ExeKind::Msys } else { ExeKind::Native };
-                return Some(Resolved { path: p.to_path_buf(), kind, interp: None, util: None });
+                return Some(Resolved { path: p.to_path_buf(), kind, interp: None, util: None, opts: Vec::new() });
             }
-            "bat" | "cmd" => return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Batch, interp: None, util: None }),
+            "bat" | "cmd" => return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Batch, interp: None, util: None, opts: Vec::new() }),
             _ => {}
         }
         let mut f = std::fs::File::open(p).ok()?;
@@ -1426,7 +1426,7 @@ impl Shell {
         let head = &buf[..n];
         if head.starts_with(b"MZ") {
             let kind = if is_msys_dir(p) { ExeKind::Msys } else { ExeKind::Native };
-            return Some(Resolved { path: p.to_path_buf(), kind, interp: None, util: None });
+            return Some(Resolved { path: p.to_path_buf(), kind, interp: None, util: None, opts: Vec::new() });
         }
         if head.starts_with(b"#!") {
             let line_end = head.iter().position(|&b| b == b'\n').unwrap_or(head.len());
@@ -1435,19 +1435,22 @@ impl Shell {
             let interp = parts.next().unwrap_or("").to_string();
             let rest: Vec<String> = parts.map(|s| s.to_string()).collect();
             let base = interp.rsplit(['/', '\\']).next().unwrap_or("").trim_end_matches(".exe").to_string();
-            let (prog, arg) = if base == "env" {
+            // `opts`: what a shell interpreter gets as options. As on Linux, the rest of the line
+            // is a single argument; after `env` it is split into words, as `env -S` does.
+            let (prog, arg, opts) = if base == "env" {
                 let mut r = rest.clone();
                 if r.first().map(|s| s == "-S").unwrap_or(false) {
                     r.remove(0);
                 }
                 let prog = if r.is_empty() { String::new() } else { r.remove(0) };
-                (prog, if r.is_empty() { None } else { Some(r.join(" ")) })
+                (prog, if r.is_empty() { None } else { Some(r.join(" ")) }, r)
             } else {
-                (interp.clone(), if rest.is_empty() { None } else { Some(rest.join(" ")) })
+                let arg = if rest.is_empty() { None } else { Some(rest.join(" ")) };
+                (interp.clone(), arg.clone(), arg.into_iter().collect())
             };
             let pbase = prog.rsplit(['/', '\\']).next().unwrap_or("").trim_end_matches(".exe").to_string();
             if matches!(pbase.as_str(), "sh" | "bash" | "dash" | "ash" | "gash") && arg.as_deref().map(|a| !a.contains("-c")).unwrap_or(true) {
-                return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None, util: None });
+                return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None, util: None, opts });
             }
             // locate interpreter
             let ip = if prog.contains('/') || prog.contains('\\') {
@@ -1477,19 +1480,21 @@ impl Shell {
             };
             let ip = ip?;
             let ik = if path::is_msys_binary(&ip) || is_msys_dir(&ip) { ExeKind::Msys } else { ExeKind::Native };
-            return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Interp, interp: Some((ip, ik, arg)), util: None });
+            return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Interp, interp: Some((ip, ik, arg)), util: None, opts: Vec::new() });
         }
         if strict && ext != "sh" {
             return None;
         }
-        Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None, util: None })
+        Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None, util: None, opts: Vec::new() })
     }
 
     // ---------- external commands ----------
 
     pub fn run_external(&mut self, res: &Resolved, argv: &[String], assigns: &[(String, String)]) -> R {
         if res.kind == ExeKind::Script && std::env::var_os("GASH_NO_INPROC").is_none() && !self.spawn_only {
-            return self.run_script_inproc(res, argv, assigns);
+            if let Some(r) = self.run_script_inproc(res, argv, assigns) {
+                return r;
+            }
         }
         let mut cmd;
         let native;
@@ -1557,6 +1562,9 @@ impl Shell {
             }
             ExeKind::Script => {
                 cmd = Proc::new(&crate::global().exe);
+                for o in &res.opts {
+                    cmd.arg(o);
+                }
                 cmd.arg(res.path.as_os_str());
                 for a in &argv[1..] {
                     cmd.arg(a);
@@ -1697,20 +1705,25 @@ impl Shell {
         Ok(code)
     }
 
-    fn run_script_inproc(&mut self, res: &Resolved, argv: &[String], assigns: &[(String, String)]) -> R {
+    /// `None` when the options on the script's `#!` line can't be applied in-process (see
+    /// apply_shebang_opts): the caller then starts the script as a separate process instead.
+    fn run_script_inproc(&mut self, res: &Resolved, argv: &[String], assigns: &[(String, String)]) -> Option<R> {
         let src = match read_script_file(&res.path) {
             Ok(s) => s,
             Err(e) => {
                 self.eprint(&format!("{}: {}", argv[0], io_err_msg(&e)));
-                return Ok(126);
+                return Some(Ok(126));
             }
         };
         let mut child = self.child_shell(assigns);
+        if !res.opts.is_empty() && !apply_shebang_opts(&mut child, &res.opts, &argv[0]) {
+            return None;
+        }
         child.arg0 = argv[0].clone();
         child.positional = argv[1..].to_vec();
         child.source_name = argv[0].clone();
         let st = child.run_main(&src);
-        Ok(st)
+        Some(Ok(st))
     }
 
     // ---------- redirections ----------
@@ -1979,6 +1992,21 @@ fn names_std_fd(args: &[String], fd: i32) -> bool {
     })
 }
 
+/// Applies the options on a script's `#!` line (`#!/bin/bash -e`, `#!/usr/bin/env -S bash -eu`)
+/// to the shell that runs it, with bash's command-line syntax. Returns false for anything that
+/// would make bash print something or refuse to start (an invalid option, `--version`, ...);
+/// the script then runs as a separate gash process, which reports it the way bash does.
+fn apply_shebang_opts(sh: &mut Shell, opts: &[String], script: &str) -> bool {
+    // The script comes last, as bash gets it, so that `-o` without a name takes it.
+    let mut argv = vec![sh.name.clone()];
+    argv.extend(opts.iter().cloned());
+    argv.push(script.to_string());
+    match crate::parse_cli(&argv, &sh.name, false) {
+        Ok(cli) => crate::apply_options(sh, &cli).is_ok(),
+        Err(_) => false,
+    }
+}
+
 /// If `r` is one of Git's MSYS tools and Microsoft Coreutils provides the same utility,
 /// resolve to the native one instead (see `coreutils.rs`).
 fn prefer_native_coreutils(r: Resolved) -> Resolved {
@@ -1995,7 +2023,7 @@ fn prefer_native_coreutils(r: Resolved) -> Resolved {
     };
     match crate::coreutils::static_name(&stem) {
         Some(util) if path::is_msys_binary(&r.path) => {
-            Resolved { path: cu.program(util), kind: ExeKind::Coreutils, interp: None, util: Some(util) }
+            Resolved { path: cu.program(util), kind: ExeKind::Coreutils, interp: None, util: Some(util), opts: Vec::new() }
         }
         _ => r,
     }
