@@ -22,6 +22,12 @@ pub enum Handle {
     Stdout,
     Stderr,
     File(Arc<File>),
+    /// A file opened with `>>`. It has ordinary write access, because MSYS programs take an
+    /// inherited handle as writable only when it has FILE_WRITE_DATA, so it can't be an
+    /// append-only handle. Instead, like Cygwin's O_APPEND, it moves to the end of the file
+    /// before each write we make and before handing it to a child. Children share its
+    /// position, so they and the shell write one after another rather than over each other.
+    Append(Arc<File>),
     PipeR(Arc<PipeReader>),
     PipeW(Arc<PipeWriter>),
     Buf(Arc<Mutex<Vec<u8>>>),
@@ -35,7 +41,7 @@ impl std::fmt::Debug for Handle {
             Handle::Stdin => "stdin",
             Handle::Stdout => "stdout",
             Handle::Stderr => "stderr",
-            Handle::File(_) => "file",
+            Handle::File(_) | Handle::Append(_) => "file",
             Handle::PipeR(_) => "pipe-r",
             Handle::PipeW(_) => "pipe-w",
             Handle::Buf(_) => "buf",
@@ -57,6 +63,7 @@ pub fn console_stdin() -> bool {
 /// Write bytes to the process stdout/stderr. Console output goes through Rust's std which
 /// converts UTF-8 to UTF-16; invalid UTF-8 is written lossily.
 fn write_std(err: bool, data: &[u8]) -> io::Result<()> {
+    sys::seek_std_append(if err { sys::STD_ERROR_HANDLE } else { sys::STD_OUTPUT_HANDLE });
     let r = if err {
         let mut e = io::stderr().lock();
         e.write_all(data).and_then(|_| e.flush())
@@ -87,6 +94,11 @@ impl Handle {
             Handle::Stdout => write_std(false, data),
             Handle::Stderr => write_std(true, data),
             Handle::File(f) => (&**f).write_all(data),
+            Handle::Append(f) => {
+                let mut f = &**f;
+                f.seek(SeekFrom::End(0))?;
+                f.write_all(data)
+            }
             Handle::PipeW(p) => (&**p).write_all(data),
             Handle::Buf(b) => {
                 b.lock().unwrap().extend_from_slice(data);
@@ -230,6 +242,7 @@ impl Handle {
                 }
             }
             Handle::Stdout => {
+                sys::seek_std_append(sys::STD_OUTPUT_HANDLE);
                 if fd == 1 {
                     (Stdio::inherit(), None)
                 } else {
@@ -237,6 +250,7 @@ impl Handle {
                 }
             }
             Handle::Stderr => {
+                sys::seek_std_append(sys::STD_ERROR_HANDLE);
                 if fd == 2 {
                     (Stdio::inherit(), None)
                 } else {
@@ -244,6 +258,10 @@ impl Handle {
                 }
             }
             Handle::File(f) => (Stdio::from(f.try_clone()?), None),
+            Handle::Append(f) => {
+                let _ = (&**f).seek(SeekFrom::End(0));
+                (Stdio::from(f.try_clone()?), None)
+            }
             Handle::PipeR(p) => (Stdio::from(p.try_clone()?), None),
             Handle::PipeW(p) => (Stdio::from(p.try_clone()?), None),
             Handle::Null => (Stdio::null(), None),

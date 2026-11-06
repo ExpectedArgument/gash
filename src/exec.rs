@@ -7,7 +7,7 @@ use crate::path;
 use crate::shell::*;
 use crate::vars::*;
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{Read, Seek};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command as Proc, ExitStatus, Stdio};
@@ -1692,10 +1692,10 @@ impl Shell {
         let mut oo = std::fs::OpenOptions::new();
         oo.read(read);
         if write {
+            // Not `OpenOptions::append`: that gives an append-only handle, which MSYS
+            // programs can't write to (see `Handle::Append`).
             oo.write(true).create(true);
-            if append {
-                oo.append(true);
-            } else if truncate {
+            if truncate && !append {
                 oo.truncate(true);
             }
         }
@@ -1703,6 +1703,10 @@ impl Shell {
             oo.create(false);
         }
         let f = oo.open(&wp)?;
+        if append && write && crate::sys::is_disk(std::os::windows::io::AsRawHandle::as_raw_handle(&f) as _) {
+            (&f).seek(std::io::SeekFrom::End(0))?;
+            return Ok(Handle::Append(Arc::new(f)));
+        }
         Ok(Handle::File(Arc::new(f)))
     }
 
