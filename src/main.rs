@@ -5,6 +5,7 @@ mod arith;
 mod ast;
 mod builtins;
 mod builtins_io;
+mod coreutils;
 mod exec;
 mod expand;
 mod interactive;

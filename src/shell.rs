@@ -271,6 +271,8 @@ pub enum ExeKind {
     Script,
     /// Script with a foreign interpreter (resolved interpreter path + optional arg).
     Interp,
+    /// A utility of Microsoft Coreutils for Windows standing in for an MSYS tool.
+    Coreutils,
 }
 
 #[derive(Clone, Debug)]
@@ -278,6 +280,8 @@ pub struct Resolved {
     pub path: PathBuf,
     pub kind: ExeKind,
     pub interp: Option<(PathBuf, ExeKind, Option<String>)>,
+    /// For ExeKind::Coreutils: the utility name.
+    pub util: Option<&'static str>,
 }
 
 static FAKE_PID: AtomicU32 = AtomicU32::new(0);

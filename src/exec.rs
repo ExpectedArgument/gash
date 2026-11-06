@@ -1308,7 +1308,7 @@ impl Shell {
             let d = if d.is_empty() { ".".to_string() } else { d };
             let wd = path::to_win(&d, &self.cwd);
             if let Some(r) = self.probe(&wd, name, true) {
-                return Some(r);
+                return Some(prefer_native_coreutils(r));
             }
         }
         None
@@ -1366,10 +1366,13 @@ impl Shell {
         let ext = p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
         match ext.as_str() {
             "exe" | "com" => {
+                if let Some(util) = crate::coreutils::get().and_then(|cu| cu.util_of(p)) {
+                    return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Coreutils, interp: None, util: Some(util) });
+                }
                 let kind = if path::is_msys_binary(p) || is_msys_dir(p) { ExeKind::Msys } else { ExeKind::Native };
-                return Some(Resolved { path: p.to_path_buf(), kind, interp: None });
+                return Some(Resolved { path: p.to_path_buf(), kind, interp: None, util: None });
             }
-            "bat" | "cmd" => return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Batch, interp: None }),
+            "bat" | "cmd" => return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Batch, interp: None, util: None }),
             _ => {}
         }
         let mut f = std::fs::File::open(p).ok()?;
@@ -1378,7 +1381,7 @@ impl Shell {
         let head = &buf[..n];
         if head.starts_with(b"MZ") {
             let kind = if is_msys_dir(p) { ExeKind::Msys } else { ExeKind::Native };
-            return Some(Resolved { path: p.to_path_buf(), kind, interp: None });
+            return Some(Resolved { path: p.to_path_buf(), kind, interp: None, util: None });
         }
         if head.starts_with(b"#!") {
             let line_end = head.iter().position(|&b| b == b'\n').unwrap_or(head.len());
@@ -1399,7 +1402,7 @@ impl Shell {
             };
             let pbase = prog.rsplit(['/', '\\']).next().unwrap_or("").trim_end_matches(".exe").to_string();
             if matches!(pbase.as_str(), "sh" | "bash" | "dash" | "ash" | "gash") && arg.as_deref().map(|a| !a.contains("-c")).unwrap_or(true) {
-                return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None });
+                return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None, util: None });
             }
             // locate interpreter
             let ip = if prog.contains('/') || prog.contains('\\') {
@@ -1429,12 +1432,12 @@ impl Shell {
             };
             let ip = ip?;
             let ik = if path::is_msys_binary(&ip) || is_msys_dir(&ip) { ExeKind::Msys } else { ExeKind::Native };
-            return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Interp, interp: Some((ip, ik, arg)) });
+            return Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Interp, interp: Some((ip, ik, arg)), util: None });
         }
         if strict && ext != "sh" {
             return None;
         }
-        Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None })
+        Some(Resolved { path: p.to_path_buf(), kind: ExeKind::Script, interp: None, util: None })
     }
 
     // ---------- external commands ----------
@@ -1458,10 +1461,38 @@ impl Shell {
             }
         };
         match res.kind {
-            ExeKind::Native | ExeKind::Batch => {
+            ExeKind::Native => {
+                cmd = Proc::new(&res.path);
+                for a in &argv[1..] {
+                    let a = conv(a);
+                    // Quote wildcard arguments so programs that glob their own command line
+                    // (MSVC setargv, Rust `wild`) don't expand what the shell left literal.
+                    if crate::coreutils::has_glob_chars(&a) {
+                        cmd.raw_arg(crate::coreutils::msvc_quote(&a));
+                    } else {
+                        cmd.arg(a);
+                    }
+                }
+                native = true;
+            }
+            ExeKind::Batch => {
                 cmd = Proc::new(&res.path);
                 for a in &argv[1..] {
                     cmd.arg(conv(a));
+                }
+                native = true;
+            }
+            ExeKind::Coreutils => {
+                // Standing in for an MSYS tool: always translate MSYS paths (per-utility policy).
+                let util = res.util.unwrap_or("");
+                let policy = crate::coreutils::policy(util).unwrap_or(crate::coreutils::ArgPolicy::Files);
+                cmd = Proc::new(&res.path);
+                let is_multicall = res.path.file_stem().map(|s| s.eq_ignore_ascii_case("coreutils")).unwrap_or(false);
+                if is_multicall {
+                    cmd.raw_arg(util);
+                }
+                for a in crate::coreutils::translate_args(policy, &argv[1..]) {
+                    cmd.raw_arg(crate::coreutils::msvc_quote(&a));
                 }
                 native = true;
             }
@@ -1851,6 +1882,28 @@ impl Shell {
             _ => {}
         }
         Ok(())
+    }
+}
+
+/// If `r` is one of Git's MSYS tools and Microsoft Coreutils provides the same utility,
+/// resolve to the native one instead (see `coreutils.rs`).
+fn prefer_native_coreutils(r: Resolved) -> Resolved {
+    if r.kind != ExeKind::Msys {
+        return r;
+    }
+    let cu = match crate::coreutils::get() {
+        Some(cu) => cu,
+        None => return r,
+    };
+    let stem = match r.path.file_stem().and_then(|s| s.to_str()) {
+        Some(s) => s.to_ascii_lowercase(),
+        None => return r,
+    };
+    match crate::coreutils::static_name(&stem) {
+        Some(util) if path::is_msys_binary(&r.path) => {
+            Resolved { path: cu.program(util), kind: ExeKind::Coreutils, interp: None, util: Some(util) }
+        }
+        _ => r,
     }
 }
 
