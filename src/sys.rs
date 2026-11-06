@@ -74,6 +74,24 @@ extern "system" {
     pub fn SetConsoleTitleW(title: *const u16) -> BOOL;
     pub fn GetLastError() -> DWORD;
     pub fn ReOpenFile(h: HANDLE, access: DWORD, share: DWORD, flags: DWORD) -> HANDLE;
+    pub fn SetStdHandle(n: DWORD, h: HANDLE) -> BOOL;
+    pub fn SetFilePointerEx(h: HANDLE, dist: i64, new_pos: *mut i64, method: DWORD) -> BOOL;
+    pub fn GetFileInformationByHandle(h: HANDLE, info: *mut BY_HANDLE_FILE_INFORMATION) -> BOOL;
+}
+
+#[repr(C)]
+#[derive(Default)]
+pub struct BY_HANDLE_FILE_INFORMATION {
+    pub dwFileAttributes: DWORD,
+    pub ftCreationTime: FILETIME,
+    pub ftLastAccessTime: FILETIME,
+    pub ftLastWriteTime: FILETIME,
+    pub dwVolumeSerialNumber: DWORD,
+    pub nFileSizeHigh: DWORD,
+    pub nFileSizeLow: DWORD,
+    pub nNumberOfLinks: DWORD,
+    pub nFileIndexHigh: DWORD,
+    pub nFileIndexLow: DWORD,
 }
 
 #[repr(C)]
@@ -87,10 +105,22 @@ extern "system" {
     fn NtQueryInformationFile(h: HANDLE, iosb: *mut IO_STATUS_BLOCK, info: *mut core::ffi::c_void, len: u32, class: u32) -> i32;
 }
 
+const FILE_READ_DATA: DWORD = 0x0001;
 const FILE_WRITE_DATA: DWORD = 0x0002;
 const FILE_APPEND_DATA: DWORD = 0x0004;
+const FILE_GENERIC_READ: DWORD = 0x0012_0089;
+const FILE_GENERIC_WRITE: DWORD = 0x0012_0116;
 const FILE_ACCESS_INFORMATION: u32 = 8;
 const FILE_SHARE_ALL: DWORD = 0x7; // read | write | delete
+const FILE_END: DWORD = 2;
+
+fn valid(h: HANDLE) -> bool {
+    !h.is_null() && h as isize != -1
+}
+
+pub fn is_disk(h: HANDLE) -> bool {
+    valid(h) && unsafe { GetFileType(h) } == FILE_TYPE_DISK
+}
 
 /// The access rights a handle was opened with.
 fn granted_access(h: HANDLE) -> Option<DWORD> {
@@ -102,23 +132,72 @@ fn granted_access(h: HANDLE) -> Option<DWORD> {
     (st >= 0).then_some(flags)
 }
 
-/// For a disk file opened append-only (FILE_APPEND_DATA without FILE_WRITE_DATA, which is how
-/// `>>` opens files), open a second handle to it that also has FILE_WRITE_DATA. The caller
-/// owns the returned handle. Returns None for any other handle.
-///
-/// The MSYS runtime takes an inherited stdio handle as writable only when it has
-/// FILE_WRITE_DATA, so an MSYS program fails every write to an append-only handle with EBADF.
-pub fn reopen_append_only_writable(h: HANDLE) -> Option<HANDLE> {
-    if h.is_null() || h as isize == -1 || unsafe { GetFileType(h) } != FILE_TYPE_DISK {
+/// Same file (volume and file index), not necessarily the same handle or file object.
+fn same_file(a: HANDLE, b: HANDLE) -> bool {
+    let mut x = BY_HANDLE_FILE_INFORMATION::default();
+    let mut y = BY_HANDLE_FILE_INFORMATION::default();
+    unsafe {
+        GetFileInformationByHandle(a, &mut x) != 0
+            && GetFileInformationByHandle(b, &mut y) != 0
+            && x.dwVolumeSerialNumber == y.dwVolumeSerialNumber
+            && (x.nFileIndexHigh, x.nFileIndexLow) == (y.nFileIndexHigh, y.nFileIndexLow)
+    }
+}
+
+/// For a disk file opened append-only (FILE_APPEND_DATA without FILE_WRITE_DATA), a second
+/// handle to it with ordinary write access. The caller owns it. None for any other handle,
+/// or if the file can't be opened again.
+fn reopen_append_only(h: HANDLE) -> Option<HANDLE> {
+    if !is_append_only(h) {
         return None;
     }
     let acc = granted_access(h)?;
-    if acc & FILE_APPEND_DATA == 0 || acc & FILE_WRITE_DATA != 0 {
-        return None;
-    }
-    let want = acc | FILE_WRITE_DATA;
+    let want = FILE_GENERIC_WRITE | if acc & FILE_READ_DATA != 0 { FILE_GENERIC_READ } else { 0 };
     let nh = unsafe { ReOpenFile(h, want, FILE_SHARE_ALL, 0) };
-    (!nh.is_null() && nh as isize != -1).then_some(nh)
+    valid(nh).then_some(nh)
+}
+
+static STDOUT_APPEND: AtomicBool = AtomicBool::new(false);
+static STDERR_APPEND: AtomicBool = AtomicBool::new(false);
+
+/// Our parent may give us stdout or stderr opened append-only (Node's `'a'` flag, Rust's
+/// `OpenOptions::append`). MSYS programs take an inherited handle as writable only when it
+/// has FILE_WRITE_DATA, so every write the MSYS programs we start made to it would fail.
+/// Replace such a handle with a writable one to the same file and treat it like a `>>` file
+/// (`io::Handle::Append`): see `seek_std_append`. When stdout and stderr are the same file,
+/// they share one handle, and so one position, so their output can't overwrite each other.
+pub fn make_append_only_stdio_writable() {
+    let out = std_handle(STD_OUTPUT_HANDLE);
+    let err = std_handle(STD_ERROR_HANDLE);
+    let new_out = reopen_append_only(out);
+    if let Some(h) = new_out {
+        unsafe { SetStdHandle(STD_OUTPUT_HANDLE, h) };
+        STDOUT_APPEND.store(true, Ordering::SeqCst);
+    }
+    let new_err = match new_out {
+        Some(h) if out == err || (is_append_only(err) && same_file(out, err)) => Some(h),
+        _ => reopen_append_only(err),
+    };
+    if let Some(h) = new_err {
+        unsafe { SetStdHandle(STD_ERROR_HANDLE, h) };
+        STDERR_APPEND.store(true, Ordering::SeqCst);
+    }
+}
+
+/// Is `h` a disk file opened append-only?
+fn is_append_only(h: HANDLE) -> bool {
+    is_disk(h)
+        && granted_access(h).is_some_and(|a| a & FILE_APPEND_DATA != 0 && a & FILE_WRITE_DATA == 0)
+}
+
+/// Move stdout or stderr to the end of its file if `make_append_only_stdio_writable`
+/// replaced it, as O_APPEND would before a write. Called before we write to it and before
+/// a child inherits it.
+pub fn seek_std_append(n: DWORD) {
+    let flag = if n == STD_ERROR_HANDLE { &STDERR_APPEND } else { &STDOUT_APPEND };
+    if flag.load(Ordering::Relaxed) {
+        unsafe { SetFilePointerEx(std_handle(n), 0, std::ptr::null_mut(), FILE_END) };
+    }
 }
 
 #[link(name = "advapi32")]

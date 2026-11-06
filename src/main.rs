@@ -392,6 +392,7 @@ fn real_main(argv: Vec<String>) -> i32 {
     };
     let _ = global();
     sys::install_ctrl_handler();
+    sys::make_append_only_stdio_writable();
 
     let mut sh = Shell::new(&name);
     import_environment(&mut sh);

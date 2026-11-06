@@ -7,7 +7,7 @@ use crate::path;
 use crate::shell::*;
 use crate::vars::*;
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{Read, Seek};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command as Proc, ExitStatus, Stdio};
@@ -1541,12 +1541,10 @@ impl Shell {
         for (k, v) in self.child_env(assigns, native) {
             cmd.env(k, v);
         }
-        let msys = matches!(res.kind, ExeKind::Msys)
-            || matches!(&res.interp, Some((_, ExeKind::Msys, _)) if res.kind == ExeKind::Interp);
         let mut pumps = Vec::new();
         for fd in 0..3 {
             let st = match self.fds.get(fd) {
-                Some(h) => match h.to_stdio(fd, msys) {
+                Some(h) => match h.to_stdio(fd) {
                     Ok((s, p)) => {
                         if let Some(p) = p {
                             pumps.push(p);
@@ -1694,10 +1692,10 @@ impl Shell {
         let mut oo = std::fs::OpenOptions::new();
         oo.read(read);
         if write {
+            // Not `OpenOptions::append`: that gives an append-only handle, which MSYS
+            // programs can't write to (see `Handle::Append`).
             oo.write(true).create(true);
-            if append {
-                oo.append(true);
-            } else if truncate {
+            if truncate && !append {
                 oo.truncate(true);
             }
         }
@@ -1705,6 +1703,10 @@ impl Shell {
             oo.create(false);
         }
         let f = oo.open(&wp)?;
+        if append && write && crate::sys::is_disk(std::os::windows::io::AsRawHandle::as_raw_handle(&f) as _) {
+            (&f).seek(std::io::SeekFrom::End(0))?;
+            return Ok(Handle::Append(Arc::new(f)));
+        }
         Ok(Handle::File(Arc::new(f)))
     }
 
