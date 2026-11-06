@@ -1,0 +1,58 @@
+== here-string
+x
+rc=0
+y
+rc=0
+z
+rc=0
+expanded
+5 /dev/stdin
+1a2
+> two
+rc=1
+rc=0
+== here-doc
+a expanded
+b
+3
+2
+1 $v
+tabs stripped
+== here-doc on a group and a subshell
+group
+subshell
+function
+== file
+one
+two
+one
+two
+two
+one
+two
+== /dev/stdout and /dev/stderr into files
+rc=0 [one|two|]
+rc=0 [one|two|]
+rc=0 [one|two|]
+rc=0 [one|two|]
+rc=0 [both|]
+rc=0 [both|app|]
+== later readers of the same here-doc
+x
+[]
+once
+end
+2
+1
+1
+[]
+via-sh
+awk line
+== input bigger than a pipe buffer is a file, reopened from its start
+line 1
+10000
+10000 /dev/stdin
+9999
+== builtins and native redirections still see the data
+builtin
+plain-cat
