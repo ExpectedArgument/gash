@@ -1,2 +1,4 @@
 /target
 /bin
+# rendered social videos (assets/video/render.html)
+/assets/*.mp4

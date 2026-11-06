@@ -1,4 +1,11 @@
+<img src="assets/gash-icon.svg" width="112" height="112" alt="gash icon">
+
 # gash
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/speed-dark.svg">
+  <img src="assets/speed-light.svg" width="100%" alt="gash vs Git Bash in real time: each ball crosses its track once per run. gash's balls fly back and forth while Git Bash's barely move.">
+</picture>
 
 A fast, native, from-scratch **bash-compatible shell for Windows**, written in Rust with
 zero dependencies. It is a drop-in replacement for Git Bash's `bash.exe`: same syntax,
@@ -31,7 +38,7 @@ Measured on the development machine (Git Bash 5.3, Windows 11, Defender on):
 | 10× `( )` subshell | 1,787 ms | 14 ms | ~130× |
 | 10× `echo hi \| cat` | 3,255 ms | 325 ms | 10× |
 | 20× external `/usr/bin/true` | 3,362 ms | 495 ms | 7× |
-| realistic script (read loop over 5k lines, recursive `fib`, assoc arrays) | 465,728 ms | 430 ms | ~1000× |
+| realistic script (read loop over 5k lines, recursive `fib`, assoc arrays) | 290,087 ms | 260 ms | ~1100× |
 
 ## Compatibility
 
@@ -188,3 +195,10 @@ GASH_COMPAT_JOBS=8 cargo test --test compat       # parallel
 | `src/arith.rs` | Arithmetic evaluator |
 | `src/lineedit.rs`, `src/interactive.rs`, `src/prompt.rs` | Line editor, REPL, completion, prompts |
 | `src/sys.rs` | Win32 FFI (no `windows-sys` dependency) |
+| `assets/gash-icon.svg` | The gash icon |
+| `assets/make_icon.py`, `build.rs` | Rasterize the icon into `assets/gash.ico`; embed it in `gash.exe` (writes the `.res` directly, no resource compiler) |
+| `assets/make_speed_svg.py` | Builds the speed animation at the top of this README from the measured timings |
+| `assets/video/` | Renders that animation frame by frame into an MP4 (`python assets/video/server.py`, then open `http://localhost:8765/video/render.html` and run `renderVideo('dark')`) |
+
+The speed animation's style is inspired by Ben Dicken's "language balls". Git logo by
+[Jason Long](https://git-scm.com/downloads/logos), licensed under CC BY 3.0.

@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>gash speed video renderer</title>
+<style>
+  body { margin: 0; font: 14px system-ui, sans-serif; background: #111; color: #ddd; }
+  canvas { width: 960px; height: 540px; display: block; margin: 12px auto; background: #000; }
+  #status { text-align: center; }
+</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<div id="status">ready: call renderVideo('dark' | 'light')</div>
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/build/mp4-muxer.min.js"></script>
+<script>
+// Renders ../speed-<theme>.svg frame by frame into an H.264 MP4, moving each ball to its
+// real-time position: one crossing of the track = data-dur seconds (triangle wave).
+const FPS = 60;
+const W = 1920, H = 1080;
+
+const statusEl = document.getElementById('status');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function clockText(t) {
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return `${m}:${s.toFixed(1).padStart(4, '0')}`;
+}
+
+async function pickCodec() {
+  for (const codec of ['avc1.64002A', 'avc1.640028', 'avc1.4D402A', 'avc1.42E02A']) {
+    const cfg = { codec, width: W, height: H, bitrate: 14_000_000, framerate: FPS, avc: { format: 'avc' } };
+    const r = await VideoEncoder.isConfigSupported(cfg);
+    if (r.supported) return cfg;
+  }
+  throw new Error('no supported H.264 config');
+}
+
+async function svgFrame(doc, balls, clock, dist, t) {
+  for (const b of balls) {
+    const p = (t / b.dur) % 2;
+    const f = p <= 1 ? p : 2 - p;
+    b.el.setAttribute('transform', `translate(${(f * dist).toFixed(2)} 0)`);
+  }
+  clock.textContent = clockText(t);
+  const blob = new Blob([new XMLSerializer().serializeToString(doc)], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  ctx.drawImage(img, 0, 0, W, H);
+  URL.revokeObjectURL(url);
+}
+
+// seconds defaults to the SVG's data-loop (set by make_speed_svg.py): one seamless loop.
+window.renderVideo = async function (theme, seconds) {
+  const t0 = performance.now();
+  const src = await (await fetch(`../speed-${theme}.svg`)).text();
+  const doc = new DOMParser().parseFromString(src, 'image/svg+xml');
+  const root = doc.documentElement;
+  seconds ??= parseFloat(root.getAttribute('data-loop'));
+  // freeze the CSS animation; we position balls ourselves
+  root.querySelector('style').textContent += '\n.ball { animation: none !important; }';
+  const dist = parseFloat(root.getAttribute('data-dist'));
+  const balls = [...root.querySelectorAll('.ball')].map(el => ({ el, dur: parseFloat(el.getAttribute('data-dur')) }));
+  const clock = root.querySelector('#clock');
+
+  const cfg = await pickCodec();
+  const muxer = new Mp4Muxer.Muxer({
+    target: new Mp4Muxer.ArrayBufferTarget(),
+    video: { codec: 'avc', width: W, height: H, frameRate: FPS },
+    fastStart: 'in-memory',
+  });
+  let encErr = null;
+  const encoder = new VideoEncoder({
+    output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+    error: e => { encErr = e; },
+  });
+  encoder.configure(cfg);
+
+  const frames = Math.round(seconds * FPS);
+  for (let i = 0; i < frames; i++) {
+    if (encErr) throw encErr;
+    const t = i / FPS;
+    await svgFrame(doc, balls, clock, dist, t);
+    const frame = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    encoder.encode(frame, { keyFrame: i % (FPS * 2) === 0 });
+    frame.close();
+    while (encoder.encodeQueueSize > 8) await new Promise(r => setTimeout(r, 1));
+    if (i % 30 === 0) statusEl.textContent = `${theme}: frame ${i}/${frames}`;
+  }
+  await encoder.flush();
+  if (encErr) throw encErr;
+  muxer.finalize();
+  const buf = muxer.target.buffer;
+  const name = `gash-vs-gitbash-${theme}.mp4`;
+  const res = await fetch(`/save/${name}`, { method: 'POST', body: buf });
+  const msg = await res.text();
+  const secs = ((performance.now() - t0) / 1000).toFixed(1);
+  statusEl.textContent = `${msg} in ${secs}s`;
+  return { name, bytes: buf.byteLength, frames, codec: cfg.codec, renderSeconds: secs, server: msg };
+};
+</script>
