@@ -1,5 +1,7 @@
 # MSYS_NO_PATHCONV and MSYS2_ARG_CONV_EXCL count when exported or given as a command prefix,
 # as in Git Bash. pwd -W prints the current directory in Windows form.
+# Start from no conversion settings, whatever the environment exports (Claude Code sets one).
+unset MSYS_NO_PATHCONV MSYS2_ARG_CONV_EXCL
 git rev-parse --sq-quote /c/x
 MSYS_NO_PATHCONV=1 git rev-parse --sq-quote /c/x
 MSYS_NO_PATHCONV=1
