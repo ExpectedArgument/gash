@@ -19,6 +19,7 @@ pub const PROCESS_TERMINATE: DWORD = 0x0001;
 pub const SYNCHRONIZE: DWORD = 0x0010_0000;
 pub const WAIT_OBJECT_0: DWORD = 0;
 pub const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 #[repr(C)]
 #[derive(Default, Clone, Copy)]
@@ -110,6 +111,16 @@ pub fn take_interrupt() -> bool {
 }
 pub fn interrupted() -> bool {
     INTERRUPTED.load(Ordering::SeqCst)
+}
+
+/// Whether this process is attached to a console at all (GetConsoleCP fails without one).
+/// It isn't when a parent started us with DETACHED_PROCESS, e.g. an editor's or agent's
+/// background task. Then every console program we start would get a new visible console
+/// window, so run_external starts them with CREATE_NO_WINDOW instead (Cygwin does the
+/// same job with a hidden console).
+pub fn has_console() -> bool {
+    static HAS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *HAS.get_or_init(|| unsafe { GetConsoleCP() != 0 })
 }
 
 pub fn std_handle(n: DWORD) -> HANDLE {

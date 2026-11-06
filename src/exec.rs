@@ -1569,8 +1569,17 @@ impl Shell {
                 _ => cmd.stderr(st),
             };
         }
+        let mut flags = 0;
         if self.spawn_only {
-            cmd.creation_flags(crate::sys::CREATE_NEW_PROCESS_GROUP);
+            flags |= crate::sys::CREATE_NEW_PROCESS_GROUP;
+        }
+        if !crate::sys::has_console() {
+            // No console to inherit: without this each console child pops its own window.
+            // (Ignored by GUI programs, which still open normally.)
+            flags |= crate::sys::CREATE_NO_WINDOW;
+        }
+        if flags != 0 {
+            cmd.creation_flags(flags);
         }
         let spawned = cmd.spawn();
         drop(cmd);
