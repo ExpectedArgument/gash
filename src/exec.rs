@@ -144,11 +144,13 @@ impl Shell {
     // ---------- running source text ----------
 
     pub fn run_source(&mut self, src: &str, fatal_syntax: bool) -> R {
-        self.run_source_top(src, fatal_syntax, false)
+        self.run_source_top(src, fatal_syntax, false, false)
     }
 
     /// `top`: this is a top-level reader (main script); `Abort` discards only the current command.
-    pub fn run_source_top(&mut self, src: &str, fatal_syntax: bool, top: bool) -> R {
+    /// `reader`: bash's reader_loop (a script or stdin, not `-c`), which clears
+    /// `stdin_redir` before each command it reads.
+    pub fn run_source_top(&mut self, src: &str, fatal_syntax: bool, top: bool, reader: bool) -> R {
         let mut p = Parser::new(src);
         if let Some(l) = self.parse_line_base.take() {
             p.line = l;
@@ -166,6 +168,9 @@ impl Shell {
                     }
                     if self.o[O_NOEXEC] {
                         continue;
+                    }
+                    if reader {
+                        self.stdin_redir = false;
                     }
                     st = match self.exec_list(&list) {
                         Ok(s) => s,
@@ -194,9 +199,15 @@ impl Shell {
         Ok(st)
     }
 
-    /// Run a whole script/`-c` string as the main program of this shell; returns exit status.
+    /// Run a whole script (or stdin) as the main program of this shell; returns exit status.
     pub fn run_main(&mut self, src: &str) -> i32 {
-        let r = self.run_source_top(src, true, true);
+        let r = self.run_source_top(src, true, true, true);
+        self.finish_main(r)
+    }
+
+    /// Run a `-c` command string as the main program of this shell.
+    pub fn run_command_string(&mut self, src: &str) -> i32 {
+        let r = self.run_source_top(src, true, true, false);
         self.finish_main(r)
     }
 
@@ -486,6 +497,7 @@ impl Shell {
                 break;
             }
             let mut sub = self.subshell_clone();
+            sub.forked = Some(prev.is_some());
             if let Some(pr) = prev.take() {
                 sub.fds.set(0, Some(pr));
             }
@@ -523,7 +535,9 @@ impl Shell {
 
     fn exec_background(&mut self, item: &ListItem) -> R {
         let mut sub = self.subshell_clone();
-        if !self.interactive {
+        // bash: without job control, `cmd &` reads /dev/null unless stdin was redirected
+        // (see Shell::stdin_redir); its own `<` redirections still apply afterwards.
+        if !self.interactive && !self.stdin_redir {
             sub.fds.set(0, Some(Handle::Null));
         }
         let id = self.jobs.list.iter().map(|j| j.id).max().unwrap_or(0) + 1;
@@ -576,6 +590,9 @@ impl Shell {
                 }
             }
         }
+        if ao.rest.is_empty() && ao.first.cmds.len() == 1 {
+            sub.forked = Some(false);
+        }
         let ao = item.and_or.clone();
         let h = std::thread::Builder::new()
             .stack_size(64 * 1024 * 1024)
@@ -605,21 +622,35 @@ impl Shell {
     // ---------- commands ----------
 
     pub fn exec_command(&mut self, cmd: &Command) -> R {
+        // bash's stdin_redir bookkeeping; see Shell::stdin_redir.
+        let forked = self.forked.take();
+        let piped = forked == Some(true);
         match cmd {
-            Command::Simple(sc) => self.exec_simple(sc),
+            Command::Simple(sc) => {
+                if piped {
+                    // A function or builtin reading a pipe (bash forks it with pipe_in set).
+                    self.stdin_redir = true;
+                }
+                self.exec_simple(sc)
+            }
             Command::Compound { kind, redirs, line } => {
                 self.lineno = *line;
-                if redirs.is_empty() {
-                    return self.exec_compound(kind);
+                let redir = piped || stdin_redirects(redirs);
+                if let CompoundKind::Subshell(_) = &**kind {
+                    // `( )` decides for itself and leaves the parent's flag alone.
+                    let outer = std::mem::replace(&mut self.stdin_redir, redir);
+                    let r = self.exec_compound_redirected(kind, redirs);
+                    self.stdin_redir = outer;
+                    return r;
                 }
-                let saved = match self.apply_redirs(redirs) {
-                    Ok(s) => s,
-                    Err(RedirErr::Failed) => return Ok(1),
-                    Err(RedirErr::Flow(f)) => return Err(f),
-                };
-                let r = self.exec_compound(kind);
-                self.restore_fds(saved);
-                r
+                if piped {
+                    self.stdin_redir = true;
+                } else if forked.is_none() && !redirs.is_empty() {
+                    // Sticks after the command ends, like bash's global. A forked
+                    // compound command's own redirections don't count in bash.
+                    self.stdin_redir = redir;
+                }
+                self.exec_compound_redirected(kind, redirs)
             }
             Command::FuncDef(f) => {
                 if crate::builtins::is_special_builtin(&f.name) && self.o[O_POSIX] {
@@ -630,6 +661,20 @@ impl Shell {
                 Ok(0)
             }
         }
+    }
+
+    fn exec_compound_redirected(&mut self, kind: &CompoundKind, redirs: &[Redir]) -> R {
+        if redirs.is_empty() {
+            return self.exec_compound(kind);
+        }
+        let saved = match self.apply_redirs(redirs) {
+            Ok(s) => s,
+            Err(RedirErr::Failed) => return Ok(1),
+            Err(RedirErr::Flow(f)) => return Err(f),
+        };
+        let r = self.exec_compound(kind);
+        self.restore_fds(saved);
+        r
     }
 
     fn loop_body(&mut self, body: &List) -> Result<Ctl, Flow> {
@@ -1957,6 +2002,24 @@ fn prefer_native_coreutils(r: Resolved) -> Resolved {
 }
 
 static MSYS_DIRS: std::sync::OnceLock<std::sync::Mutex<HashMap<PathBuf, bool>>> = std::sync::OnceLock::new();
+
+/// bash's `stdin_redirects()`: does this redirection list count as redirecting stdin?
+/// Any `<`, `<>`, here-doc or here-string does, whatever its fd; `<&N` and `<&-`
+/// only on fd 0, and moves (`<&N-`) and `{var}<` never.
+fn stdin_redirects(redirs: &[Redir]) -> bool {
+    redirs.iter().any(|r| {
+        r.fd_var.is_none()
+            && match r.op {
+                RedirOp::In | RedirOp::ReadWrite | RedirOp::HereDoc | RedirOp::HereString => true,
+                RedirOp::DupIn => {
+                    let is_move = matches!(&r.target, RedirTarget::Word(w)
+                        if w.as_plain().is_some_and(|t| t.len() > 1 && t.ends_with('-')));
+                    r.fd.unwrap_or(0) == 0 && !is_move
+                }
+                _ => false,
+            }
+    })
+}
 
 /// Is this executable in a directory that holds an MSYS2/Cygwin runtime DLL?
 pub fn is_msys_dir(p: &Path) -> bool {

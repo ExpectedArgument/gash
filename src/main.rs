@@ -514,7 +514,7 @@ fn real_main(argv: Vec<String>) -> i32 {
     }
 
     if let Some(cmd) = &cli.command {
-        return sh.run_main(cmd.strip_prefix('\u{feff}').unwrap_or(cmd));
+        return sh.run_command_string(cmd.strip_prefix('\u{feff}').unwrap_or(cmd));
     }
     if let Some(script) = &cli.script {
         let wp = path::to_win(script, &sh.cwd);

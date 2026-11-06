@@ -348,6 +348,14 @@ pub struct Shell {
     pub parse_line_base: Option<usize>,
     /// Consumers of > >(cmd) redirections; joined at exit so their output isn't lost.
     pub ps_threads: Vec<std::thread::JoinHandle<i32>>,
+    /// bash's `stdin_redir`: set once a compound command with an input
+    /// redirection (or a pipe into a compound command, function or builtin)
+    /// runs, so `cmd &` keeps that stdin instead of getting /dev/null.
+    /// Cleared before each command of a script or stdin reader, not for `-c`.
+    pub stdin_redir: bool,
+    /// One-shot, for the next `exec_command`: it is a command bash would fork on
+    /// its own (a pipeline element, or a lone `cmd &`); `Some(true)` if it reads a pipe.
+    pub forked: Option<bool>,
 }
 
 impl Shell {
@@ -419,6 +427,8 @@ impl Shell {
             trap_display: None,
             parse_line_base: None,
             ps_threads: Vec::new(),
+            stdin_redir: false,
+            forked: None,
         }
     }
 
@@ -486,6 +496,8 @@ impl Shell {
             trap_display: Some(self.trap_display.clone().unwrap_or_else(|| self.traps.clone())),
             parse_line_base: None,
             ps_threads: Vec::new(),
+            stdin_redir: self.stdin_redir,
+            forked: None,
         }
     }
 
