@@ -667,35 +667,41 @@ impl Shell {
             "LINENO" => self.lineno.to_string(),
             "BASHPID" => self.bashpid.to_string(),
             "BASH_SUBSHELL" => self.subshell.to_string(),
+            // The call stack, innermost first, as bash keeps it: function and `source` frames, then
+            // the script itself ("main", its file, line 0). That last entry exists only when the
+            // shell runs a script, not for -c or stdin.
             "FUNCNAME" => {
-                if self.call_stack.is_empty() {
+                // Set only while a function runs; `source` frames show up in it as "source".
+                if !self.call_stack.iter().any(|f| f.func != "source") {
                     return None;
                 }
                 let mut m = BTreeMap::new();
                 for (i, f) in self.call_stack.iter().rev().enumerate() {
                     m.insert(i as i64, f.func.clone());
                 }
-                m.insert(self.call_stack.len() as i64, "main".into());
+                if self.script_mode {
+                    m.insert(self.call_stack.len() as i64, "main".into());
+                }
                 return Some(Value::Arr(m));
             }
             "BASH_SOURCE" => {
-                let mut m = BTreeMap::new();
-                for (i, f) in self.call_stack.iter().rev().enumerate() {
-                    m.insert(i as i64, f.source.clone());
+                // [0] is the file of the code running now (for a function, the file it was defined
+                // in), then the file each frame was entered from.
+                let mut v = vec![self.source_name.clone()];
+                v.extend(self.call_stack.iter().rev().map(|f| f.source.clone()));
+                if !self.script_mode {
+                    v.pop();
                 }
-                m.insert(self.call_stack.len() as i64, self.call_stack.first().map(|_| self.main_source()).unwrap_or_else(|| self.source_name.clone()));
-                if self.call_stack.is_empty() {
-                    m.clear();
-                    m.insert(0, self.source_name.clone());
-                }
-                return Some(Value::Arr(m));
+                return Some(Value::Arr(v.into_iter().enumerate().map(|(i, s)| (i as i64, s)).collect()));
             }
             "BASH_LINENO" => {
                 let mut m = BTreeMap::new();
                 for (i, f) in self.call_stack.iter().rev().enumerate() {
                     m.insert(i as i64, f.call_line.to_string());
                 }
-                m.insert(self.call_stack.len() as i64, "0".into());
+                if self.script_mode {
+                    m.insert(self.call_stack.len() as i64, "0".into());
+                }
                 return Some(Value::Arr(m));
             }
             "DIRSTACK" => {
@@ -728,10 +734,6 @@ impl Shell {
             _ => return None,
         };
         Some(Value::Str(v))
-    }
-
-    fn main_source(&self) -> String {
-        self.source_name.clone()
     }
 
     pub fn is_special_dynamic(name: &str) -> bool {

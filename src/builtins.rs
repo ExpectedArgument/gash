@@ -670,11 +670,15 @@ fn source(sh: &mut Shell, name: &str, args: &[String]) -> R {
         }
     };
     let saved_pos = if args.len() > 1 { Some(std::mem::replace(&mut sh.positional, args[1..].to_vec())) } else { None };
+    // As in bash, a sourced file gets a frame of its own: FUNCNAME "source", and BASH_SOURCE and
+    // BASH_LINENO say where it was sourced from.
+    sh.call_stack.push(Frame { func: "source".into(), source: sh.source_name.clone(), call_line: sh.lineno });
     let saved_name = std::mem::replace(&mut sh.source_name, f.clone());
     let saved_line = sh.lineno;
     sh.sourcing += 1;
     let r = sh.run_nested(&src);
     sh.sourcing -= 1;
+    sh.call_stack.pop();
     sh.source_name = saved_name;
     sh.lineno = saved_line;
     if let Some(p) = saved_pos {
