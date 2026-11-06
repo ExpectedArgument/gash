@@ -231,16 +231,21 @@ impl Job {
         self.status = Some(st);
         st
     }
-    pub fn kill(&mut self) {
+    /// Stop the job with signal `sig`. Windows has no signals: its process is terminated with exit
+    /// code 128+sig, which `wait` then reports, as bash does for a job killed by a signal.
+    pub fn kill(&mut self, sig: i32) {
+        let code = 128 + sig as u32;
         match &mut self.kind {
             JobKind::Proc(c) => {
-                let _ = c.kill();
+                if !crate::sys::kill_pid(c.id(), code) {
+                    let _ = c.kill();
+                }
             }
             JobKind::Thread(_) => {
                 self.cancel.store(true, Ordering::SeqCst);
                 let p = self.child_pid.load(Ordering::SeqCst);
                 if p != 0 {
-                    crate::sys::kill_pid(p, 1);
+                    crate::sys::kill_pid(p, code);
                 }
             }
         }

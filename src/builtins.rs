@@ -1566,7 +1566,7 @@ fn kill(sh: &mut Shell, args: &[String]) -> R {
     for t in &args[i..] {
         if let Some(k) = find_job(sh, t) {
             if sig != 0 {
-                sh.jobs.list[k].kill();
+                sh.jobs.list[k].kill(sig);
             }
             continue;
         }
