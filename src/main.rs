@@ -283,6 +283,14 @@ fn setup_environment(sh: &mut Shell, login: bool) {
         }
     }
     front.append(&mut parts);
+    // If gash is installed as bash/sh (bash.exe or sh.exe beside gash.exe), make that folder
+    // win over Git's /usr/bin, so `bash`, `sh` and child processes that run them get gash —
+    // just as Git Bash puts its own bash first. ~/bin and anything earlier still take precedence.
+    if let Some(own) = own_shell_dir() {
+        front.retain(|p| !p.eq_ignore_ascii_case(&own));
+        let at = front.iter().position(|p| p == "/usr/bin" || p == "/bin").unwrap_or(0);
+        front.insert(at, own);
+    }
     setv(sh, "PATH", &front.join(":"), true);
     // misc
     let exe_posix = global().exe_posix.clone();
@@ -340,6 +348,19 @@ fn setup_environment(sh: &mut Shell, login: bool) {
     if sh.get_str("HISTFILESIZE").is_none() {
         setv(sh, "HISTFILESIZE", "500", false);
     }
+}
+
+/// MSYS-form folder of our executable, if it also provides `bash.exe` or `sh.exe`
+/// (or we are ourselves running as bash/sh).
+fn own_shell_dir() -> Option<String> {
+    let exe = &global().exe;
+    let dir = exe.parent()?;
+    let stem = exe.file_stem()?.to_string_lossy().to_ascii_lowercase();
+    let provides = stem == "bash" || stem == "sh" || dir.join("bash.exe").is_file() || dir.join("sh.exe").is_file();
+    if !provides || path::is_msys_binary(exe) {
+        return None;
+    }
+    Some(path::to_posix(dir))
 }
 
 fn source_if_exists(sh: &mut Shell, posix: &str) -> Option<R> {
