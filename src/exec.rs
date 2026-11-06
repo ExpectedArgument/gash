@@ -1506,9 +1506,22 @@ impl Shell {
         let mut cmd;
         let native;
         let mut msys_child = false;
-        let no_conv = self.get_str("MSYS_NO_PATHCONV").map(|v| !v.is_empty()).unwrap_or(false);
-        let excl: Vec<String> = self
-            .get_str("MSYS2_ARG_CONV_EXCL")
+        // As in Git Bash, these count where the MSYS runtime would see them: in the environment
+        // the program starts with, so when exported or given as a prefix (`MSYS_NO_PATHCONV=1 cmd`).
+        let env_var = |name: &str| -> Option<String> {
+            match assigns.iter().rev().find(|(k, _)| k == name) {
+                Some((_, v)) => Some(v.clone()),
+                None => match self.vars.get(name) {
+                    Some(v) if v.has(EXPORT) => match &v.value {
+                        Some(Value::Str(s)) => Some(s.clone()),
+                        _ => None,
+                    },
+                    _ => None,
+                },
+            }
+        };
+        let no_conv = env_var("MSYS_NO_PATHCONV").map(|v| !v.is_empty()).unwrap_or(false);
+        let excl: Vec<String> = env_var("MSYS2_ARG_CONV_EXCL")
             .map(|v| v.split(';').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect())
             .unwrap_or_default();
         let conv = |a: &str| -> String {
