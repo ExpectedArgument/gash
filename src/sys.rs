@@ -116,6 +116,45 @@ struct IO_STATUS_BLOCK {
 #[link(name = "ntdll")]
 extern "system" {
     fn NtQueryInformationFile(h: HANDLE, iosb: *mut IO_STATUS_BLOCK, info: *mut core::ffi::c_void, len: u32, class: u32) -> i32;
+    #[allow(clippy::too_many_arguments)]
+    fn NtWriteFile(
+        h: HANDLE,
+        event: HANDLE,
+        apc: *mut core::ffi::c_void,
+        apc_context: *mut core::ffi::c_void,
+        iosb: *mut IO_STATUS_BLOCK,
+        buf: *const core::ffi::c_void,
+        len: u32,
+        offset: *const i64,
+        key: *const u32,
+    ) -> i32;
+    fn RtlNtStatusToDosError(status: i32) -> u32;
+}
+
+/// Write to the end of the file, wherever the handle's position is, as one append
+/// (FILE_WRITE_TO_END_OF_FILE), so that writers sharing the file can't land on the same
+/// offset. The position is left just past the data, at the end. Returns the bytes written.
+pub fn write_at_end(h: HANDLE, data: &[u8]) -> std::io::Result<usize> {
+    let mut iosb = IO_STATUS_BLOCK { status: 0, information: 0 };
+    let end: i64 = -1; // FILE_WRITE_TO_END_OF_FILE in the low part, -1 in the high part
+    let len = data.len().min(u32::MAX as usize) as u32;
+    let st = unsafe {
+        NtWriteFile(
+            h,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            &mut iosb,
+            data.as_ptr() as *const _,
+            len,
+            &end,
+            std::ptr::null(),
+        )
+    };
+    if st < 0 {
+        return Err(std::io::Error::from_raw_os_error(unsafe { RtlNtStatusToDosError(st) } as i32));
+    }
+    Ok(iosb.information)
 }
 
 const FILE_READ_DATA: DWORD = 0x0001;
@@ -146,7 +185,7 @@ fn granted_access(h: HANDLE) -> Option<DWORD> {
 }
 
 /// Same file (volume and file index), not necessarily the same handle or file object.
-fn same_file(a: HANDLE, b: HANDLE) -> bool {
+pub fn same_file(a: HANDLE, b: HANDLE) -> bool {
     let mut x = BY_HANDLE_FILE_INFORMATION::default();
     let mut y = BY_HANDLE_FILE_INFORMATION::default();
     unsafe {
