@@ -77,6 +77,19 @@ extern "system" {
     pub fn SetStdHandle(n: DWORD, h: HANDLE) -> BOOL;
     pub fn SetFilePointerEx(h: HANDLE, dist: i64, new_pos: *mut i64, method: DWORD) -> BOOL;
     pub fn GetFileInformationByHandle(h: HANDLE, info: *mut BY_HANDLE_FILE_INFORMATION) -> BOOL;
+    fn CreatePipe(read: *mut HANDLE, write: *mut HANDLE, sa: *mut core::ffi::c_void, size: DWORD) -> BOOL;
+}
+
+/// An anonymous pipe whose buffer holds at least `size` bytes, so that much can be
+/// written to it without a reader.
+pub fn pipe_with_size(size: DWORD) -> std::io::Result<(std::io::PipeReader, std::io::PipeWriter)> {
+    use std::os::windows::io::FromRawHandle;
+    let mut r: HANDLE = std::ptr::null_mut();
+    let mut w: HANDLE = std::ptr::null_mut();
+    if unsafe { CreatePipe(&mut r, &mut w, std::ptr::null_mut(), size) } == 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    unsafe { Ok((std::io::PipeReader::from_raw_handle(r as _), std::io::PipeWriter::from_raw_handle(w as _))) }
 }
 
 #[repr(C)]
