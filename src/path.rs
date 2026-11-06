@@ -356,6 +356,14 @@ pub fn convert_arg(arg: &str) -> Cow<'_, str> {
     if arg.len() < 2 {
         return Cow::Borrowed(arg);
     }
+    // `//x` is an escaped Windows switch (`cmd //c`, `taskkill //F`): as in MSYS, it loses one
+    // slash, unless it looks like a UNC path (`//server/share`).
+    if let Some(rest) = arg.strip_prefix("//") {
+        if rest.is_empty() || rest.starts_with('/') || !rest.contains('/') {
+            return Cow::Owned(arg[1..].to_string());
+        }
+        return Cow::Borrowed(arg);
+    }
     let cwd = Path::new("C:\\");
     if convertible(arg) {
         if arg == "/dev/null" {
