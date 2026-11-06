@@ -1677,7 +1677,7 @@ impl Shell {
             }
         };
         if !appends.is_empty() {
-            crate::io::append_started(&appends, child.id());
+            crate::io::append_started(&appends, &child);
         }
         if self.spawn_only {
             self.spawned = Some(child);

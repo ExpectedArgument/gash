@@ -541,9 +541,11 @@ impl Fds {
 /// `shared_append`).
 struct AppendFile {
     file: Arc<File>,
-    /// Programs it was handed to, by process id. It stays shared while they run, even after
-    /// the redirection that started them is gone (`cmd >> log &`).
-    children: Vec<u32>,
+    /// Programs it was handed to. It stays shared while they run, even after the redirection
+    /// that started them is gone (`cmd >> log &`). Process handles rather than ids: Windows
+    /// reuses an id once its process is gone, and an unrelated process with it would keep the
+    /// file open.
+    children: Vec<std::os::windows::io::OwnedHandle>,
 }
 
 static APPEND_FILES: Mutex<Vec<AppendFile>> = Mutex::new(Vec::new());
@@ -566,11 +568,13 @@ pub fn shared_append(f: File) -> Arc<File> {
     file
 }
 
-/// Record that the program `pid` was started with these `>>` handles.
-pub fn append_started(files: &[Arc<File>], pid: u32) {
+/// Record that `child` was started with these `>>` handles.
+pub fn append_started(files: &[Arc<File>], child: &std::process::Child) {
     let mut open = APPEND_FILES.lock().unwrap();
     for a in open.iter_mut().filter(|a| files.iter().any(|f| Arc::ptr_eq(f, &a.file))) {
-        a.children.push(pid);
+        if let Ok(h) = child.as_handle().try_clone_to_owned() {
+            a.children.push(h);
+        }
     }
 }
 
@@ -584,7 +588,7 @@ pub fn prune_append_files() {
 
 fn prune_append(open: &mut Vec<AppendFile>) {
     open.retain_mut(|a| {
-        a.children.retain(|&pid| sys::pid_alive(pid));
+        a.children.retain(|h| sys::process_running(h.as_raw_handle() as sys::HANDLE));
         Arc::strong_count(&a.file) > 1 || !a.children.is_empty()
     });
 }

@@ -359,6 +359,11 @@ pub fn kill_pid(pid: u32, code: u32) -> bool {
     }
 }
 
+/// Whether the process behind a handle we hold is still running.
+pub fn process_running(h: HANDLE) -> bool {
+    unsafe { WaitForSingleObject(h, 0) != WAIT_OBJECT_0 }
+}
+
 pub fn pid_alive(pid: u32) -> bool {
     unsafe {
         let h = OpenProcess(SYNCHRONIZE, 0, pid);
