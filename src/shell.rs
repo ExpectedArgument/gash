@@ -1062,13 +1062,22 @@ impl Shell {
     }
 
     /// Environment for a child process (values converted for native Windows programs).
+    ///
+    /// MSYS programs and child gash processes get POSIX values, except PATH, TMP and TEMP, which
+    /// are converted to Windows form because the MSYS runtime reads them from the Windows
+    /// environment. It builds its `/tmp` mount (`usertemp` in /etc/fstab) from GetTempPathW,
+    /// which reads TMP/TEMP, and `TMP=/tmp` makes that `C:\tmp`. All running MSYS processes of
+    /// an installation share one mount table, so the first to start decides `/tmp` for the rest.
+    /// MSYS turns TMP/TEMP back into POSIX form at startup, so the program still sees `/tmp`.
+    /// A child gash also reads TEMP to find the folder behind `/tmp`.
     pub fn child_env(&mut self, extra: &[(String, String)], native: bool) -> Vec<(String, String)> {
         let mut out: Vec<(String, String)> = Vec::new();
         let mut seen: HashSet<String> = HashSet::new();
         let cwd = self.cwd.clone();
+        let convert = |k: &str| native || matches!(k, "PATH" | "TMP" | "TEMP");
         for (k, v) in extra {
             seen.insert(k.to_uppercase());
-            let val = if native || k == "PATH" { crate::path::convert_env_value(k, v, &cwd) } else { v.clone() };
+            let val = if convert(k) { crate::path::convert_env_value(k, v, &cwd) } else { v.clone() };
             out.push((k.clone(), val));
         }
         let names = self.vars.names();
@@ -1088,7 +1097,7 @@ impl Shell {
                 _ => continue,
             };
             seen.insert(name.to_uppercase());
-            let val = if native || name == "PATH" { crate::path::convert_env_value(&name, &val, &cwd) } else { val };
+            let val = if convert(&name) { crate::path::convert_env_value(&name, &val, &cwd) } else { val };
             out.push((name, val));
         }
         for (k, v) in self.env_extra.iter() {
