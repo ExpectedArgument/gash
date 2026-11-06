@@ -1,0 +1,98 @@
+name: Attribution comment
+
+# After the Attribution check runs on a PR, comment on the PR with the commits that don't
+# say which models helped write them, and update that comment once they do.
+#
+# This is a separate workflow_run workflow so it can comment on PRs from forks too: those
+# runs get a read-only token. It runs from the default branch with a write token, so it
+# never runs anything from the PR. It only reads the PR's commit metadata with the
+# default branch's copy of check-attribution.sh. GitHub only triggers workflow_run
+# workflows from the default branch, so this one starts working once it's merged.
+
+on:
+  workflow_run:
+    workflows: [Attribution]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: attribution-comment-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    name: Comment on the PR
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      # The default branch, not the PR: the script that reads the commits must be trusted.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the PR's commits and comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          # workflow_run's pull_requests list is empty for fork PRs, so find the PR by head commit.
+          pr=$(gh pr list --repo "$REPO" --state open --limit 200 --json number,headRefOid \
+            --jq ".[] | select(.headRefOid == \"$HEAD_SHA\") | .number" | sed -n 1p)
+          if [ -z "$pr" ]; then
+            echo "No open PR has $HEAD_SHA as its head; it was closed or pushed to again."
+            exit 0
+          fi
+          base_sha=$(gh api "repos/$REPO/pulls/$pr" --jq .base.sha)
+
+          git fetch --no-tags origin "refs/pull/$pr/head"
+
+          report=$(mktemp)
+          status=0
+          ATTRIBUTION_REPORT="$report" bash .github/scripts/check-attribution.sh "$base_sha" "$HEAD_SHA" || status=$?
+
+          marker='<!-- attribution-check -->'
+          existing=$(gh api --paginate "repos/$REPO/issues/$pr/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" \
+            | sed -n 1p)
+
+          body=$(mktemp)
+          if [ "$status" -eq 0 ]; then
+            if [ -z "$existing" ]; then
+              exit 0
+            fi
+            {
+              echo "$marker"
+              echo "### Model attribution"
+              echo
+              echo "All commits now say which models helped write them. ✅"
+            } > "$body"
+          elif [ -s "$report" ]; then
+            {
+              echo "$marker"
+              echo "### Model attribution"
+              echo
+              echo "These commits don't say which models helped write them:"
+              echo
+              cat "$report"
+              echo
+              echo "End each commit message with a \`Co-Authored-By: Claude <Model> <version> <noreply@anthropic.com>\` trailer for each model used, for example \`Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\`, or with \`AI-Assisted: none\` if no model was used. Reword them with \`git rebase -i\` and force-push the branch."
+            } > "$body"
+          else
+            echo "check-attribution.sh failed without reporting a commit (exit $status)."
+            exit "$status"
+          fi
+
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$existing" -F "body=@$body" > /dev/null
+            echo "Updated comment $existing on PR #$pr."
+          else
+            gh api --method POST "repos/$REPO/issues/$pr/comments" -F "body=@$body" > /dev/null
+            echo "Commented on PR #$pr."
+          fi
