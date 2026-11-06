@@ -14,6 +14,14 @@ use std::thread::JoinHandle;
 pub struct MemReader {
     pub data: Vec<u8>,
     pub pos: usize,
+    /// Set once the input has been handed to an external program (see `mem_pipe`).
+    pub pipe: Option<Arc<PipeReader>>,
+}
+
+impl MemReader {
+    pub fn new(data: Vec<u8>) -> MemReader {
+        MemReader { data, pos: 0, pipe: None }
+    }
 }
 
 #[derive(Clone)]
@@ -126,12 +134,13 @@ impl Handle {
                 }
             }
             Handle::File(f) => (&**f).read(buf),
-            Handle::PipeR(p) => match (&**p).read(buf) {
-                Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(0),
-                r => r,
-            },
+            Handle::PipeR(p) => read_pipe(p, buf),
             Handle::Mem(m) => {
                 let mut m = m.lock().unwrap();
+                if let Some(p) = m.pipe.clone() {
+                    drop(m);
+                    return read_pipe(&p, buf);
+                }
                 let n = buf.len().min(m.data.len() - m.pos);
                 let p = m.pos;
                 buf[..n].copy_from_slice(&m.data[p..p + n]);
@@ -164,6 +173,10 @@ impl Handle {
         match self {
             Handle::Mem(m) => {
                 let mut m = m.lock().unwrap();
+                if m.pipe.is_some() {
+                    drop(m);
+                    return self.read_bytewise(delim, limit);
+                }
                 while m.pos < m.data.len() && out.len() < limit {
                     let b = m.data[m.pos];
                     m.pos += 1;
@@ -202,20 +215,24 @@ impl Handle {
                 let f = raw_std(sys::STD_INPUT_HANDLE);
                 read_until_seekable(&f, delim, limit)
             }
-            _ => {
-                let mut b = [0u8; 1];
-                while out.len() < limit {
-                    if self.read(&mut b)? == 0 {
-                        return Ok((out, false));
-                    }
-                    if b[0] == delim {
-                        return Ok((out, true));
-                    }
-                    out.push(b[0]);
-                }
-                Ok((out, false))
-            }
+            _ => self.read_bytewise(delim, limit),
         }
+    }
+
+    /// Read one byte at a time, so that nothing past `delim` is consumed.
+    fn read_bytewise(&self, delim: u8, limit: usize) -> io::Result<(Vec<u8>, bool)> {
+        let mut out = Vec::new();
+        let mut b = [0u8; 1];
+        while out.len() < limit {
+            if self.read(&mut b)? == 0 {
+                return Ok((out, false));
+            }
+            if b[0] == delim {
+                return Ok((out, true));
+            }
+            out.push(b[0]);
+        }
+        Ok((out, false))
     }
 
     /// Convert to a Stdio for a child process. Returns an optional helper thread
@@ -261,21 +278,41 @@ impl Handle {
                 });
                 (Stdio::from(w), Some(h))
             }
-            Handle::Mem(m) => {
-                let data = {
-                    let mut m = m.lock().unwrap();
-                    let d = m.data[m.pos..].to_vec();
-                    m.pos = m.data.len();
-                    d
-                };
-                let (r, mut w) = io::pipe()?;
-                let h = std::thread::spawn(move || {
-                    let _ = w.write_all(&data);
-                });
-                (Stdio::from(r), Some(h))
-            }
+            Handle::Mem(m) => (Stdio::from(mem_pipe(m)?.try_clone()?), None),
         })
     }
+}
+
+fn read_pipe(p: &PipeReader, buf: &mut [u8]) -> io::Result<usize> {
+    let mut r = p;
+    match r.read(buf) {
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(0),
+        r => r,
+    }
+}
+
+/// Here-documents and here-strings are kept in memory while only builtins read them. When one
+/// is handed to an external program, its unread rest moves into a pipe that every later reader
+/// shares, as with bash's pipe-backed here-documents: whatever a program leaves unread stays
+/// for the next reader (`f() { /usr/bin/true; cat; }; f <<< data` prints `data`), instead of
+/// being used up by the first child that is given the handle.
+fn mem_pipe(m: &Mutex<MemReader>) -> io::Result<Arc<PipeReader>> {
+    let mut m = m.lock().unwrap();
+    if let Some(p) = &m.pipe {
+        return Ok(p.clone());
+    }
+    let (r, mut w) = io::pipe()?;
+    let pos = m.pos;
+    let data = std::mem::take(&mut m.data).split_off(pos);
+    m.pos = 0;
+    // Not joined: the data waits in the pipe until someone reads it, and the writer ends once
+    // it has written everything or the last reader is gone.
+    std::thread::spawn(move || {
+        let _ = w.write_all(&data);
+    });
+    let r = Arc::new(r);
+    m.pipe = Some(r.clone());
+    Ok(r)
 }
 
 fn dup_std(h: std::os::windows::io::BorrowedHandle<'_>) -> io::Result<Stdio> {
