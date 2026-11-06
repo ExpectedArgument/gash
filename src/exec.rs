@@ -1754,7 +1754,7 @@ impl Shell {
                     }
                     None => String::new(),
                 };
-                let h = Handle::Mem(Arc::new(std::sync::Mutex::new(crate::io::MemReader { data: content.into_bytes(), pos: 0 })));
+                let h = Handle::Mem(Arc::new(std::sync::Mutex::new(crate::io::MemReader::new(content.into_bytes()))));
                 self.set_fd_saved(fd, Some(h), saved, persist);
                 return Ok(());
             }
@@ -1765,7 +1765,7 @@ impl Shell {
                 };
                 let mut s = self.expand_word_str(w).map_err(RedirErr::Flow)?;
                 s.push('\n');
-                let h = Handle::Mem(Arc::new(std::sync::Mutex::new(crate::io::MemReader { data: s.into_bytes(), pos: 0 })));
+                let h = Handle::Mem(Arc::new(std::sync::Mutex::new(crate::io::MemReader::new(s.into_bytes()))));
                 self.set_fd_saved(fd, Some(h), saved, persist);
                 return Ok(());
             }

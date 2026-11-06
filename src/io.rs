@@ -10,10 +10,88 @@ use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
+/// Here-document and here-string input. It starts in memory so builtins can read it
+/// cheaply. The first time it's handed to a child process, the unread part moves to a
+/// pipe or file that the shell and every later child share, as bash does: a child that
+/// reads only part of it, or none, leaves the rest for the next reader.
 #[derive(Debug, Default)]
 pub struct MemReader {
-    pub data: Vec<u8>,
-    pub pos: usize,
+    data: Vec<u8>,
+    pos: usize,
+    /// Where the input went once a child needed it: `Handle::PipeR` or `Handle::File`.
+    shared: Option<Handle>,
+}
+
+/// Input up to this size goes in a pipe that holds all of it, and larger input in a
+/// temporary file. Like bash 5.1+ (and Git Bash): a program that reads part of its
+/// input can seek back over the excess in a file, but not in a pipe.
+const HEREDOC_PIPE_MAX: usize = 64 * 1024;
+
+impl MemReader {
+    pub fn new(data: Vec<u8>) -> MemReader {
+        MemReader { data, pos: 0, shared: None }
+    }
+
+    /// The pipe or file holding the unread input, creating it on first use.
+    fn shared(&mut self) -> io::Result<Handle> {
+        if let Some(h) = &self.shared {
+            return Ok(h.clone());
+        }
+        let rest = &self.data[self.pos..];
+        let h = if rest.len() <= HEREDOC_PIPE_MAX {
+            // The pipe's buffer holds all of it, so this write doesn't wait for a reader.
+            let (r, mut w) = sys::pipe_with_size(HEREDOC_PIPE_MAX as u32)?;
+            w.write_all(rest)?;
+            Handle::PipeR(Arc::new(r))
+        } else {
+            let mut f = temp_file()?;
+            f.write_all(rest)?;
+            f.seek(SeekFrom::Start(0))?;
+            Handle::File(Arc::new(f))
+        };
+        self.data = Vec::new();
+        self.pos = 0;
+        self.shared = Some(h.clone());
+        Ok(h)
+    }
+}
+
+/// A new temporary file that Windows deletes once the last handle to it, ours or a
+/// child's, is closed.
+fn temp_file() -> io::Result<File> {
+    use std::os::windows::fs::OpenOptionsExt;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    const FILE_ATTRIBUTE_TEMPORARY: u32 = 0x100;
+    const FILE_FLAG_DELETE_ON_CLOSE: u32 = 0x0400_0000;
+    static SEQ: AtomicU32 = AtomicU32::new(0);
+    let dir = std::env::temp_dir();
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    let mut last = None;
+    for _ in 0..16 {
+        let name = format!(
+            "gash-heredoc-{}-{}-{:08x}.tmp",
+            std::process::id(),
+            SEQ.fetch_add(1, Ordering::Relaxed),
+            nanos
+        );
+        match std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .share_mode(0x7) // read | write | delete
+            .attributes(FILE_ATTRIBUTE_TEMPORARY)
+            .custom_flags(FILE_FLAG_DELETE_ON_CLOSE)
+            .open(dir.join(name))
+        {
+            Ok(f) => return Ok(f),
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => last = Some(e),
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last.unwrap_or_else(|| io::Error::new(io::ErrorKind::Other, "cannot create temporary file")))
 }
 
 #[derive(Clone)]
@@ -144,6 +222,10 @@ impl Handle {
             },
             Handle::Mem(m) => {
                 let mut m = m.lock().unwrap();
+                if let Some(h) = m.shared.clone() {
+                    drop(m);
+                    return h.read(buf);
+                }
                 let n = buf.len().min(m.data.len() - m.pos);
                 let p = m.pos;
                 buf[..n].copy_from_slice(&m.data[p..p + n]);
@@ -176,6 +258,10 @@ impl Handle {
         match self {
             Handle::Mem(m) => {
                 let mut m = m.lock().unwrap();
+                if let Some(h) = m.shared.clone() {
+                    drop(m);
+                    return h.read_until(delim, max);
+                }
                 while m.pos < m.data.len() && out.len() < limit {
                     let b = m.data[m.pos];
                     m.pos += 1;
@@ -280,17 +366,22 @@ impl Handle {
                 (Stdio::from(w), Some(h))
             }
             Handle::Mem(m) => {
-                let data = {
-                    let mut m = m.lock().unwrap();
-                    let d = m.data[m.pos..].to_vec();
-                    m.pos = m.data.len();
-                    d
-                };
-                let (r, mut w) = io::pipe()?;
-                let h = std::thread::spawn(move || {
-                    let _ = w.write_all(&data);
-                });
-                (Stdio::from(r), Some(h))
+                let mut m = m.lock().unwrap();
+                match m.shared() {
+                    Ok(h) => h.to_stdio(fd)?,
+                    // No pipe or file to share: feed the child through a pump thread
+                    // instead. It gets all of the unread input, so none is left for
+                    // later readers.
+                    Err(_) => {
+                        let data = std::mem::take(&mut m.data).split_off(m.pos);
+                        m.pos = 0;
+                        let (r, mut w) = io::pipe()?;
+                        let h = std::thread::spawn(move || {
+                            let _ = w.write_all(&data);
+                        });
+                        (Stdio::from(r), Some(h))
+                    }
+                }
             }
         })
     }

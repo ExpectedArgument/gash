@@ -1,0 +1,29 @@
+script: [data]
+script heredoc: [line one
+line two]
+func cmdsub: [data]
+func msys cat: [data]
+echo remote script
+exit 0
+3
+4
+a=1 b=2
+first
+--
+q
+x=p y=
+got alpha
+got beta
+got gamma
+n=5 sub
+10000
+line 1
+9999
+line 2
+line 3
+l=line 1 l2=line 4
+9996
+98894
+once
+again
+again
