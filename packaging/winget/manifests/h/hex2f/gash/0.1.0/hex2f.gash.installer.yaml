@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.28.0.schema.json
 
 PackageIdentifier: hex2f.gash
 PackageVersion: 0.1.0
@@ -21,4 +21,4 @@ Installers:
   InstallerUrl: https://github.com/hex2f/gash/releases/download/v0.1.0/gash-0.1.0-arm64.zip
   InstallerSha256: B32D888F77D849B8674BD4B571F601E0A4A04271A6EBC0D85313CCDC27D75462
 ManifestType: installer
-ManifestVersion: 1.12.0
+ManifestVersion: 1.28.0
