@@ -1529,11 +1529,11 @@ impl Shell {
                 return r;
             }
         }
+        // The arguments of an MSYS program, when they are too long for a command line.
+        let mut rsp: Option<std::fs::File> = None;
         let mut cmd;
         let native;
         let mut msys_child = false;
-        // The arguments of an MSYS program, when they are too long for a command line.
-        let mut rsp: Option<std::fs::File> = None;
         let no_conv = self.get_str("MSYS_NO_PATHCONV").map(|v| !v.is_empty()).unwrap_or(false);
         let excl: Vec<String> = self
             .get_str("MSYS2_ARG_CONV_EXCL")
