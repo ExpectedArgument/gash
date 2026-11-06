@@ -1057,11 +1057,26 @@ pub fn mapfile(sh: &mut Shell, name: &str, args: &[String]) -> R {
 
 // ---------------- test ----------------
 
+/// The file a test operator looks at. As with Cygwin, `foo` also names `foo.exe` when only that
+/// exists, so `[ -x /usr/bin/ls ]` and `[ -x "$(command -v git)" ]` find the programs.
+fn test_path(sh: &Shell, p: &str) -> std::path::PathBuf {
+    let w = path::to_win(p, &sh.cwd);
+    if !w.exists() && !p.ends_with('/') && !p.ends_with('\\') {
+        let mut e = w.clone().into_os_string();
+        e.push(".exe");
+        let e = std::path::PathBuf::from(e);
+        if e.is_file() {
+            return e;
+        }
+    }
+    w
+}
+
 fn file_meta(sh: &Shell, p: &str) -> Option<std::fs::Metadata> {
     if p.is_empty() {
         return None;
     }
-    let md = std::fs::metadata(path::to_win(p, &sh.cwd)).ok()?;
+    let md = std::fs::metadata(test_path(sh, p)).ok()?;
     if (p.ends_with('/') || p.ends_with('\\')) && !md.is_dir() {
         return None;
     }
@@ -1098,7 +1113,10 @@ pub fn test_unary(sh: &mut Shell, op: &str, s: &str) -> bool {
         "-r" => dev(s) || file_meta(sh, s).is_some(),
         "-w" => dev(s) || file_meta(sh, s).map(|m| !m.permissions().readonly() || m.is_dir()).unwrap_or(false),
         "-x" => {
-            let p = path::to_win(s, &sh.cwd);
+            if s.is_empty() {
+                return false;
+            }
+            let p = test_path(sh, s);
             match std::fs::metadata(&p) {
                 Ok(m) => is_executable(&p, &m),
                 Err(_) => false,
