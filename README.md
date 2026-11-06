@@ -117,6 +117,17 @@ Limitations: native tools can't create or open file names containing `* ? : " < 
 MSYS runtime supports by remapping them (native `touch` also stops at the first such error), and
 tools that echo absolute paths they were given print them as `C:/...` rather than `/c/...`.
 
+## Installing
+
+```bash
+winget install hex2f.gash
+```
+
+This also installs Git for Windows if winget doesn't find it. Or download
+`gash-<version>-x64.zip` (or `-arm64.zip`) from
+[Releases](https://github.com/hex2f/gash/releases) and unzip it anywhere. `gash.exe` is a single
+file with no runtime dependencies besides Git for Windows' tools.
+
 ## Building
 
 ```bash
@@ -124,7 +135,10 @@ cargo build --release
 ```
 
 The binary is `target\release\gash.exe` (no runtime dependencies besides Git for Windows'
-tools, which it finds automatically; override with `GASH_ROOT=C:\path\to\Git`).
+tools, which it finds automatically; override with `GASH_ROOT=C:\path\to\Git`). The C runtime
+is linked statically (`.cargo/config.toml`), so it doesn't need the Visual C++ Redistributable.
+Releases are built by `.github/workflows/release.yml` when a `v*` tag is pushed; see
+[packaging/winget/README.md](packaging/winget/README.md).
 
 ## Using it
 
@@ -198,6 +212,8 @@ GASH_COMPAT_JOBS=8 cargo test --test compat       # parallel
 | `assets/gash-icon.svg` | The gash icon |
 | `assets/make_icon.py`, `build.rs` | Rasterize the icon into `assets/gash.ico`; embed it in `gash.exe` (writes the `.res` directly, no resource compiler) |
 | `assets/make_speed_svg.py` | Builds the speed animation at the top of this README from the measured timings |
+| `.github/workflows/release.yml` | Builds x64/arm64 zips on a `v*` tag, publishes the GitHub release, submits to winget |
+| `packaging/winget/` | winget manifests for the first submission, and how releases reach winget |
 | `assets/video/` | Renders that animation frame by frame into an MP4 (`python assets/video/server.py`, then open `http://localhost:8765/video/render.html` and run `renderVideo('dark')`) |
 
 The speed animation's style is inspired by Ben Dicken's "language balls". Git logo by
